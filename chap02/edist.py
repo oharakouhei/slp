@@ -24,8 +24,8 @@ class MinimumEditDistance(object):
 
     def calc(self, source, target):
         '''
-        target: 行方向
-        source: 列方向
+        target: 行方向 (a column is a character of the target word)
+        source: 列方向 (a row is a character of the source word)
         '''
         # initialize
         distance = np.zeros((len(source)+1, len(target)+1))
