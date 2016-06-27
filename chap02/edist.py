@@ -42,7 +42,7 @@ class MinimumEditDistance(object):
                     distance[src_idx-1, tgt_idx-1]+self._subst_cost(src_char, tgt_char),
                     distance[src_idx, tgt_idx-1]+self.DEL_COST,
                 )
-        return distance[len(source), len(target)]
+        return int(distance[len(source), len(target)])
 
 
 if __name__ == "__main__":
