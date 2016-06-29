@@ -5,9 +5,10 @@
 #ifndef CHAP03_NGRAM_H
 #define CHAP03_NGRAM_H
 
+#include <fstream>
 #include <iostream>
 #include <vector>
-#include <unordered_map>
+#include <unordered_set>
 #include <map>
 #include "utility.h"
 
@@ -15,6 +16,7 @@ class NGram
 {
 private:
     int N_;
+    int nof_corpus_words_;
     // ngram_freq_のkeyを作成するため、一時的にngramを保持する。
     std::vector<std::string> tmp_ngram_;
     std::map<std::vector<std::string>, int> ngram_freq_;
@@ -27,12 +29,14 @@ private:
     void updateNgramFreq_(std::string &word);
     void updateTmpNgram_(std::string &word);
     void createN1gramFreq_();
-    double probability_(const std::vector<std::string> &ngram, const int &count);
+    double probability_(const std::vector<std::string> &ngram);
+    void test_(std::istream &stream);
+    double calcPerplexity_(std::istream &stream);
 public:
     NGram(const int);
     void train(const std::string &train_data);
-    double calcPerplexity(const std::string &testing);
-
+    void test(const std::string &test_data);
+    double calcPerplexity(const std::string &test_data);
 
     // デバッグ用
     void showProbabilities();

@@ -1,8 +1,6 @@
 //
 // Created by OharaKohei on 2016/06/28.
 //
-#include <fstream>
-#include <curses.h>
 #include "ngram.h"
 
 std::string NGRAM_START_SYMBOL = "<s>";
@@ -12,36 +10,107 @@ std::string SENTENCE_END_SYMBOL = "EOS";
 NGram::NGram(const int N)
 {
     N_ = N;
+    nof_corpus_words_ = 0;
 }
 
 void NGram::train(const std::string &train_data)
 {
+    std::cout << "training..." << std::endl;
     std::ifstream input(train_data);
     if (!input) {
         std::cerr << "cannot found training data file!" << std::endl;
+        std::exit(EXIT_FAILURE);
     }
     countNgram_(input);
     input.close();
 }
 
-double NGram::calcPerplexity(const std::string &testing)
+//
+// perplexityを算出するためにパラメータを更新
+// nof_corpus_wordsを計算する必要がある
+//
+void NGram::test(const std::string &test_data)
 {
-    std::cout << "calc" << std::endl;
+    std::cout << "testing..." << std::endl;
+    std::ifstream input(test_data);
+    if (!input) {
+        std::cerr << "cannot found test data file!" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+    test_(input);
+    input.close();
 }
 
+//
+// パラメータ更新実行関数
+//
+void NGram::test_(std::istream &stream)
+{
+    std::string line;
+    std::unordered_set<std::string> uniqueWords = {};
+    while (std::getline(stream, line))
+    {
+        std::string word = getSurface_(line);
+        uniqueWords.emplace(word);
+    }
+    // <s>の分で1を加えた数がcorpusのuniqueな文字数
+    nof_corpus_words_ = uniqueWords.size() + 1;
+}
+
+//
+// test()を呼びパラメータが更新できたら、
+// perplexityを計算
+//
+double NGram::calcPerplexity(const std::string &test_data)
+{
+    std::cout << "calculating perplexity.." << std::endl;
+    std::ifstream input(test_data);
+    if (!input) {
+        std::cerr << "cannot found test data file!" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+    double pp = calcPerplexity_(input);
+    input.close();
+    return pp;
+}
+
+//
+// perplexity計算の実行メソッド
+//
+double NGram::calcPerplexity_(std::istream &stream)
+{
+    double perplexity = 1.0;
+    initializeTmpNgram_();
+    std::string line;
+    while (std::getline(stream, line))
+    {
+        std::string word = getSurface_(line);
+        if (word == SENTENCE_END_SYMBOL)
+        {
+            word = NGRAM_END_SYNBOL;
+        }
+        updateTmpNgram_(word);
+        const double p = probability_(tmp_ngram_);
+        const double pp = std::pow(1.0 / p, 1.0 / nof_corpus_words_);
+        perplexity *= pp;
+        if (word == SENTENCE_END_SYMBOL)
+        {
+            initializeTmpNgram_();
+        }
+    }
+    return perplexity;
+}
 
 void NGram::showProbabilities()
 {
-    createN1gramFreq_();
-
     auto end = ngram_freq_.end();
     for(auto iter = ngram_freq_.begin(); iter != end; iter++)
     {
-        double p = probability_(iter->first, iter->second);
+        double p = probability_(iter->first);
 
         std::vector<std::string> v(iter->first.begin(), iter->first.end()-1);
-        std::cout << "P(" << iter->first << "|"
-            << v << ") = " << p << std::endl;
+        std::cout << "P( " << iter->first << " | "
+            << v << " ) = " << p << std::endl;
     }
 }
 
@@ -52,12 +121,21 @@ void NGram::countNgram_(std::istream &stream)
 {
     std::string line;
     initializeTmpNgram_();
+    std::unordered_set<std::string> uniqueWords = {};
     while (std::getline(stream, line))
     {
         std::string word = getSurface_(line);
+        if (word == SENTENCE_END_SYMBOL)
+        {
+            word = NGRAM_END_SYNBOL;
+        }
         updateNgramFreq_(word);
+        uniqueWords.emplace(word);
     }
-    std::cout << ngram_freq_ << std::endl;
+    // <s>の分で1を加えた数がcorpusのuniqueな文字数。</s>はEOSとして出現するので+2ではない。
+    nof_corpus_words_ = uniqueWords.size() + 1;
+    // calc n-1gram histogram
+    createN1gramFreq_();
 }
 
 //
@@ -73,7 +151,7 @@ void NGram::initializeTmpNgram_()
 }
 
 //
-// 表層系（単語そのもの）を行から取得する関数
+// 表層系（単語そのもの）を行から取得するメソッド
 // 例)
 // line = "あけおめ	名詞,普通名詞,*,*"
 // return "あけおめ"
@@ -86,17 +164,11 @@ std::string NGram::getSurface_(std::string &line)
 }
 
 //
-// ngramのhashを作る関数
+// ngramのhashを作るメソッド
 // ngramベクトルをkeyにしてその頻度を計算する
 //
 void NGram::updateNgramFreq_(std::string &word)
 {
-    bool is_sentence_end = FALSE;
-    if (word == SENTENCE_END_SYMBOL)
-    {
-        is_sentence_end = TRUE;
-        word = NGRAM_END_SYNBOL;
-    }
     updateTmpNgram_(word);
     if(tmp_ngram_.size() == N_)
     {
@@ -110,7 +182,7 @@ void NGram::updateNgramFreq_(std::string &word)
             ngram_freq_.emplace(tmp_ngram_, 1);
         }
     }
-    if (is_sentence_end)
+    if (word == NGRAM_END_SYNBOL)
     {
         initializeTmpNgram_();
     }
@@ -129,7 +201,7 @@ void NGram::updateTmpNgram_(std::string &word)
     }
     else
     {
-        // FIXME: eraseは削除された要素以降のデータがひとつずつ前に移動されるので遅そう。
+        // OPTIMIZE: eraseは削除された要素以降のデータがひとつずつ前に移動されるので遅そう。
         tmp_ngram_.erase(tmp_ngram_.begin());
         tmp_ngram_.push_back(word);
     }
@@ -148,19 +220,26 @@ void NGram::createN1gramFreq_()
         std::vector<std::string> tmp_n_1gram(iter->first.begin(), iter->first.end()-1);
         n_1gram_freq_[tmp_n_1gram] += iter->second;
     }
-    std::cout << n_1gram_freq_ << std::endl;
 }
 
-double NGram::probability_(const std::vector<std::string> &ngram, const int &count)
+double NGram::probability_(const std::vector<std::string> &ngram)
 {
+    // laplace smoothing
+    // 分子, 分母
+    int numer, denom;
+    // 分子の計算
+    auto ngram_iter = ngram_freq_.find(ngram);
+    if (ngram_iter != ngram_freq_.end())
+        numer = ngram_iter->second + 1;
+    else
+        numer = 1;
+    // 分母の計算
     std::vector<std::string> v(ngram.begin(), ngram.end()-1);
     auto iter = n_1gram_freq_.find(v);
     if (iter != n_1gram_freq_.end())
-    {
-        return (double) count / iter->second;
-    }
+        denom = iter->second + nof_corpus_words_;
     else
-    {
-        return 0;
-    }
+        denom = nof_corpus_words_;
+
+    return numer / (double) denom;
 }
