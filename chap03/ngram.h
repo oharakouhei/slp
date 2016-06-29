@@ -21,8 +21,9 @@ private:
 
     void countNgram_(std::istream &stream);
     std::string getSurface_(std::string &line);
-    void createNgram_(std::string &word);
+    void createNgramFreq_(std::string &word);
     void updateTmpNgram_(std::string &word);
+    void clearTmpNgram_();
 public:
     NGram(const int);
     void train(const std::string &train_data);

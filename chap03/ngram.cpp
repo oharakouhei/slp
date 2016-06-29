@@ -2,6 +2,7 @@
 // Created by OharaKohei on 2016/06/28.
 //
 #include <fstream>
+#include <curses.h>
 #include "ngram.h"
 
 std::string NGRAM_START_SYMBOL = "<s>";
@@ -34,8 +35,9 @@ void NGram::countNgram_(std::istream &stream)
     while (std::getline(stream, line))
     {
         std::string word = getSurface_(line);
-        createNgram_(word);
+        createNgramFreq_(word);
     }
+    std::cout << ngram_freq_ << std::endl;
 }
 
 //
@@ -55,14 +57,17 @@ std::string NGram::getSurface_(std::string &line)
 // ngramのhashを作る関数
 // ngramベクトルをkeyにしてその頻度を計算する
 //
-void NGram::createNgram_(std::string &word)
+void NGram::createNgramFreq_(std::string &word)
 {
+    bool is_sentence_end = FALSE;
     if (word == SENTENCE_END_SYMBOL)
     {
+        is_sentence_end = TRUE;
         word = NGRAM_END_SYNBOL;
     }
     updateTmpNgram_(word);
 
+    // カウント
     if(tmp_ngram_.size() == N_)
     {
         auto iter = ngram_freq_.find(tmp_ngram_);
@@ -76,13 +81,36 @@ void NGram::createNgram_(std::string &word)
         }
     }
 
+    if (is_sentence_end)
+    {
+        clearTmpNgram_();
+    }
+
 }
 
 //
 // tmp_ngramにwordを保存していく
+// 大きさは常にNを保つ
 //
 void NGram::updateTmpNgram_(std::string &word)
 {
-    tmp_ngram_.push_back(word);
-    std::cout << tmp_ngram_ << std::endl;
+    if(tmp_ngram_.size() != N_)
+    {
+        tmp_ngram_.push_back(word);
+    }
+    else
+    {
+        // FIXME: eraseは削除された要素以降のデータがひとつずつ前に移動されるので遅そう。
+        tmp_ngram_.erase(tmp_ngram_.begin());
+        tmp_ngram_.push_back(word);
+    }
+}
+
+//
+// tmp_ngramを空にする関数
+// EOSがきたら呼ぶ
+//
+void NGram::clearTmpNgram_()
+{
+    tmp_ngram_.clear();
 }
