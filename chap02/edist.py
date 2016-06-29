@@ -3,24 +3,30 @@ import sys
 import numpy as np
 
 class MinimumEditDistance(object):
+    # Levenshtein distance
+    NO_COST = 0
+    INS_COST = 1
+    DEL_COST = 1
+    SUBST_COST = 2
+
     def __init__(self):
-        # Levenshtein distance
-        self.NO_COST = 0
-        self.INS_COST = 1
-        self.DEL_COST = 1
-        self.SUBST_COST = 2
+        pass
+
 
     def _ins_cost(self):
-        return self.INS_COST
+        return MinimumEditDistance.INS_COST
+
 
     def _subst_cost(self, src_char, tgt_char):
         if src_char == tgt_char:
-            return self.NO_COST
+            return MinimumEditDistance.NO_COST
         else:
-            return self.SUBST_COST
+            return MinimumEditDistance.SUBST_COST
+
 
     def _del_cost(self):
-        return self.DEL_COST
+        return MinimumEditDistance.DEL_COST
+
 
     def calc(self, source, target):
         '''
@@ -50,7 +56,6 @@ if __name__ == "__main__":
     while(True):
         input_words = input("> ")
         arr = input_words.split()
-
         if len(arr) == 2:
             break
         else:
