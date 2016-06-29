@@ -16,28 +16,60 @@ NGram::NGram(const int N)
 
 void NGram::train(const std::string &train_data)
 {
-    std::cout << train_data << std::endl;
-
     std::ifstream input(train_data);
-
     if (!input) {
         std::cerr << "cannot found training data file!" << std::endl;
     }
-
     countNgram_(input);
+    input.close();
 }
 
+double NGram::calcPerplexity(const std::string &testing)
+{
+    std::cout << "calc" << std::endl;
+}
+
+
+void NGram::showProbabilities()
+{
+    createN1gramFreq_();
+
+    auto end = ngram_freq_.end();
+    for(auto iter = ngram_freq_.begin(); iter != end; iter++)
+    {
+        double p = probability_(iter->first, iter->second);
+
+        std::vector<std::string> v(iter->first.begin(), iter->first.end()-1);
+        std::cout << "P(" << iter->first << "|"
+            << v << ") = " << p << std::endl;
+    }
+}
+
+//
+// ngramがそれぞれどれだけ出現するかカウントする
+//
 void NGram::countNgram_(std::istream &stream)
 {
     std::string line;
-
-    updateTmpNgram_(NGRAM_START_SYMBOL);
+    initializeTmpNgram_();
     while (std::getline(stream, line))
     {
         std::string word = getSurface_(line);
-        createNgramFreq_(word);
+        updateNgramFreq_(word);
     }
     std::cout << ngram_freq_ << std::endl;
+}
+
+//
+// 文頭で実行。NGRAM_START_SYMBOLをN-1だけ挿入する
+//
+void NGram::initializeTmpNgram_()
+{
+    tmp_ngram_.clear();
+    for (int i=0; i < N_; i++)
+    {
+        updateTmpNgram_(NGRAM_START_SYMBOL);
+    }
 }
 
 //
@@ -57,7 +89,7 @@ std::string NGram::getSurface_(std::string &line)
 // ngramのhashを作る関数
 // ngramベクトルをkeyにしてその頻度を計算する
 //
-void NGram::createNgramFreq_(std::string &word)
+void NGram::updateNgramFreq_(std::string &word)
 {
     bool is_sentence_end = FALSE;
     if (word == SENTENCE_END_SYMBOL)
@@ -66,8 +98,6 @@ void NGram::createNgramFreq_(std::string &word)
         word = NGRAM_END_SYNBOL;
     }
     updateTmpNgram_(word);
-
-    // カウント
     if(tmp_ngram_.size() == N_)
     {
         auto iter = ngram_freq_.find(tmp_ngram_);
@@ -80,10 +110,9 @@ void NGram::createNgramFreq_(std::string &word)
             ngram_freq_.emplace(tmp_ngram_, 1);
         }
     }
-
     if (is_sentence_end)
     {
-        clearTmpNgram_();
+        initializeTmpNgram_();
     }
 
 }
@@ -106,11 +135,32 @@ void NGram::updateTmpNgram_(std::string &word)
     }
 }
 
+
 //
-// tmp_ngramを空にする関数
-// EOSがきたら呼ぶ
+// ngramの頻度mapから
+// n-1gramの頻度mapを生成
 //
-void NGram::clearTmpNgram_()
+void NGram::createN1gramFreq_()
 {
-    tmp_ngram_.clear();
+    auto end = ngram_freq_.end();
+    for(auto iter = ngram_freq_.begin(); iter != end; iter++)
+    {
+        std::vector<std::string> tmp_n_1gram(iter->first.begin(), iter->first.end()-1);
+        n_1gram_freq_[tmp_n_1gram] += iter->second;
+    }
+    std::cout << n_1gram_freq_ << std::endl;
+}
+
+double NGram::probability_(const std::vector<std::string> &ngram, const int &count)
+{
+    std::vector<std::string> v(ngram.begin(), ngram.end()-1);
+    auto iter = n_1gram_freq_.find(v);
+    if (iter != n_1gram_freq_.end())
+    {
+        return (double) count / iter->second;
+    }
+    else
+    {
+        return 0;
+    }
 }
