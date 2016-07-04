@@ -1,5 +1,6 @@
-h_files  := $(wildcard *.h)
-cpp_files := $(wildcard *.cpp)
+main_h_files  :=  ngram.h utility.h
+main_cpp_files := main.cpp ngram.cpp utility.cpp
+cdr2sentence_cpp_files := cdr2sentence.cpp
 opts :=
 opts += -O3
 opts += -std=c++11
@@ -10,20 +11,30 @@ test_opts += -Wall
 
 CXXFLAGS := $(opts)
 
-main : $(cpp_files) $(h_files)
-	g++ -o $@ $(CXXFLAGS) $(cpp_files)
+.PHONY: all
+all : main cdr2sentence
+
+.PHONY: main
+main : $(main_cpp_files) $(main_h_files)
+	g++ -o $@ $(CXXFLAGS) $(main_cpp_files)
+
+.PHONY: cdr2sentence
+cdr2sentence : $(cdr2sentence_cpp_files)
+	g++ -o $@ $(CXXFLAGS) $(cdr2sentence_cpp_files)
 
 .PHONY: run
 run:
 	./main
+	./cdr2sentence
 
-debug: $(cpp_files) $(h_files)
-	g++ $(debug) -o $@ $(CXXFLAGS) $(cpp_files)
+debug: $(main_cpp_files) $(main_h_files)
+	g++ $(debug) -o $@ $(CXXFLAGS) $(main_cpp_files)
 	gdb ./$@
+
 
 .PHONY: clean
 clean :
 	rm -f main
-	rm -f test
+	rm -f cdr2sentence
 	rm -f debug
 	rm -rf *.dSYM

@@ -18,7 +18,7 @@ void NGram::train(const std::string &train_data)
     std::cout << "training..." << std::endl;
     std::ifstream input(train_data);
     if (!input) {
-        std::cerr << "cannot found training data file!" << std::endl;
+        std::cerr << "cannot find training data file!" << std::endl;
         std::exit(EXIT_FAILURE);
     }
     countNgram_(input);
