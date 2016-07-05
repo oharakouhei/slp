@@ -42,10 +42,10 @@ int main(int argc, char** argv)
     {
         auto words = split(line, SENTENCE_DELIMITER);
         initializeTmpNgram();
+        if (N == 1)
+            updateNgramFreq(NGRAM_START_SYMBOL);
         for (std::string word : words)
-        {
             updateNgramFreq(word);
-        }
         updateNgramFreq(NGRAM_END_SYMBOL);
     }
 
@@ -56,9 +56,7 @@ int main(int argc, char** argv)
         std::cout << iter->second;
         // ngram vectorでのloop
         for (std::string ngram_word : iter->first)
-        {
             std::cout << SENTENCE_DELIMITER << ngram_word;
-        }
         std::cout << std::endl;
     }
     return 0;
@@ -71,10 +69,8 @@ int main(int argc, char** argv)
 void initializeTmpNgram()
 {
     tmp_ngram.clear();
-    for (int i=0; i < N; i++)
-    {
+    for (int i=0; i < N-1; i++)
         updateTmpNgram(NGRAM_START_SYMBOL);
-    }
 }
 
 
@@ -89,13 +85,9 @@ void updateNgramFreq(std::string &word)
     {
         auto iter = ngram_freq.find(tmp_ngram);
         if (iter != ngram_freq.end())
-        {
             iter->second++;
-        }
         else
-        {
             ngram_freq.emplace(tmp_ngram, 1);
-        }
     }
 }
 
@@ -107,9 +99,7 @@ void updateNgramFreq(std::string &word)
 void updateTmpNgram(std::string &word)
 {
     if(tmp_ngram.size() != N)
-    {
         tmp_ngram.push_back(word);
-    }
     else
     {
         // OPTIMIZE: eraseは削除された要素以降のデータがひとつずつ前に移動されるので遅そう。
