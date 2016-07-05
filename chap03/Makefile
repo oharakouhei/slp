@@ -1,6 +1,7 @@
 main_h_files  :=  ngram.h utility.h
 main_cpp_files := main.cpp ngram.cpp utility.cpp
 cdr2sentence_cpp_files := cdr2sentence.cpp
+sentence2ngram_cpp_files := sentence2ngram.cpp
 opts :=
 opts += -O3
 opts += -std=c++11
@@ -12,7 +13,7 @@ test_opts += -Wall
 CXXFLAGS := $(opts)
 
 .PHONY: all
-all : main cdr2sentence
+all : main cdr2sentence sentence2ngram
 
 .PHONY: main
 main : $(main_cpp_files) $(main_h_files)
@@ -22,10 +23,16 @@ main : $(main_cpp_files) $(main_h_files)
 cdr2sentence : $(cdr2sentence_cpp_files)
 	g++ -o $@ $(CXXFLAGS) $(cdr2sentence_cpp_files)
 
+.PHONY: sentence2ngram
+sentence2ngram : $(sentence2ngram_cpp_files)
+	g++ -o $@ $(CXXFLAGS) $(sentence2ngram_cpp_files)
+
+
 .PHONY: run
 run:
 	./main
 	./cdr2sentence
+	./sentence2ngram
 
 debug: $(main_cpp_files) $(main_h_files)
 	g++ $(debug) -o $@ $(CXXFLAGS) $(main_cpp_files)
@@ -36,5 +43,6 @@ debug: $(main_cpp_files) $(main_h_files)
 clean :
 	rm -f main
 	rm -f cdr2sentence
+	rm -f sentence2ngram
 	rm -f debug
 	rm -rf *.dSYM
