@@ -2,7 +2,6 @@
 // 単語間がスペースで、文が改行で区切られた文から
 // ngramをカウントするスクリプト
 //
-#include <vector>
 #include <map>
 #include "common.h"
 
@@ -17,7 +16,6 @@ std::map<std::vector<std::string>, int> ngram_freq;
 void initializeTmpNgram();
 void updateNgramFreq(std::string &word);
 void updateTmpNgram(std::string &word);
-std::vector<std::string> split(const std::string &s, char delim);
 
 
 int main(int argc, char** argv)
@@ -46,7 +44,6 @@ int main(int argc, char** argv)
             updateNgramFreq(NGRAM_START_SYMBOL);
         for (std::string word : words)
             updateNgramFreq(word);
-        updateNgramFreq(NGRAM_END_SYMBOL);
     }
 
     // output
@@ -106,31 +103,4 @@ void updateTmpNgram(std::string &word)
         tmp_ngram.erase(tmp_ngram.begin());
         tmp_ngram.push_back(word);
     }
-}
-
-
-//
-// split関数
-// 第一引数を第二引数の文字で分割したvectorを返す
-//
-std::vector<std::string> split(const std::string &s, char delim)
-{
-    std::vector<std::string> elems;
-    std::string item;
-    for (char ch: s)
-    {
-        if (ch == delim)
-        {
-            if (!item.empty())
-                elems.push_back(item);
-            item.clear();
-        }
-        else
-        {
-            item += ch;
-        }
-    }
-    if (!item.empty())
-        elems.push_back(item);
-    return elems;
 }
