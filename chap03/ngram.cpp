@@ -2,6 +2,7 @@
 // Created by OharaKohei on 2016/06/28.
 //
 #include "ngram.h"
+#include <cmath>
 
 std::string NGRAM_START_SYMBOL = "<s>";
 std::string NGRAM_END_SYNBOL = "</s>";
