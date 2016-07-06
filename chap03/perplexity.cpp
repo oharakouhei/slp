@@ -42,10 +42,11 @@ int main(int argc, char** argv)
     std::cout << "vocabulary: " << VT << ", ";
     std::cout << N << "-grams: " << nof_ngrams << std::endl;
 
-    int nof_words = countWords(test_file);
+    // </s>の分で+1
+    int nof_words = countWords(test_file) + 1;
 
     // perplexity計算
-    double total_logP = 0.0;
+    double total_logPP = 0.0;
     std::string line;
     // testファイルの各行でloopを回す
     while (std::getline(test_input, line))
@@ -73,7 +74,7 @@ int main(int argc, char** argv)
                 std::string n_1gram = join(first, n_1gram_last, SENTENCE_DELIMITER);
                 int c_1 = 0;
                 c_1 = getNgramCount(n_1gram_file, n_1gram);
-                p = (double) (c + 1) / (c_1 + VT);
+                p = (double) (c + 1) / (c_1 + VT + 1);
             }
             else
             {
@@ -81,11 +82,10 @@ int main(int argc, char** argv)
                 p = (double) (c + 1) / (VS + VT + 1);
             }
             double pp = 1.0 / p;
-            total_logP += log(p);
+            total_logPP += log(pp);
             std::cout << *(last-1) << SENTENCE_DELIMITER << pp << std::endl;
         }
-        double total_p = exp(total_logP);
-        double total_pp = std::pow(1.0 / total_p, 1.0 / nof_words);
+        double total_pp = exp(total_logPP / nof_words);
         std::cout << "perplexity: " << total_pp << std::endl;
     }
 }
