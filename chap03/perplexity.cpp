@@ -1,7 +1,6 @@
 //
 // perplexityをカウントするスクリプト
 //
-#include "utility.h"
 #include "common.h"
 #include <cmath>
 #include <unordered_set>
@@ -12,20 +11,14 @@ int countWords(const std::string& test_file);
 
 int main(int argc, char** argv)
 {
-//    if (argc < 5) {
-//        std::cerr << "Usage: " << argv[0] << " N ngram_file n-1gram_file test_file" << std::endl;
-//        std::exit(EXIT_FAILURE);
-//    }
-//    int N = std::stoi(argv[1]);
-//    std::string ngram_file = argv[2];
-//    std::string n_1gram_file = argv[3];
-//    std::string test_file = argv[4];
-
-    int N = 2;
-    std::string ngram_file = "/Users/kohei/Desktop/college/tkl/slp_meeting/slp_practices/chap03/data/mini2013_bigram.txt";
-    std::string n_1gram_file = "/Users/kohei/Desktop/college/tkl/slp_meeting/slp_practices/chap03/data/mini2013_unigram.txt";
-    std::string test_file = "/Users/kohei/Desktop/college/tkl/slp_meeting/slp_practices/chap03/data/minimini2013.txt";
-
+    if (argc < 5) {
+        std::cerr << "Usage: " << argv[0] << " N ngram_file n-1gram_file test_file" << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+    int N = std::stoi(argv[1]);
+    std::string ngram_file = argv[2];
+    std::string n_1gram_file = argv[3];
+    std::string test_file = argv[4];
 
     std::ifstream ngram_input(ngram_file);
     if (!ngram_input) {
