@@ -6,7 +6,7 @@
 #include <unordered_set>
 
 int getNgramCount(const std::string& ngram_file, const std::string& ngram);
-void countVocabularySize(const std::string& ngram_file, int *v, int *n);
+void countVocabularySize(const std::string& ngram_file, int *vs, int *vt, int *n);
 int countWords(const std::string& test_file);
 
 int main(int argc, char** argv)
@@ -36,10 +36,10 @@ int main(int argc, char** argv)
         std::exit(EXIT_FAILURE);
     }
 
-    // V: vocabulary size, nof_ngrams: number of ngrams
-    int V, nof_ngrams;
-    countVocabularySize(ngram_file, &V, &nof_ngrams);
-    std::cout << "vocabulary: " << V << ", ";
+    // VS: vocabulary size, VT: vocabulary type, nof_ngrams: number of ngrams
+    int VS, VT, nof_ngrams;
+    countVocabularySize(ngram_file, &VS, &VT, &nof_ngrams);
+    std::cout << "vocabulary: " << VT << ", ";
     std::cout << N << "-grams: " << nof_ngrams << std::endl;
 
     int nof_words = countWords(test_file);
@@ -65,14 +65,22 @@ int main(int argc, char** argv)
             auto last = first + N;
             auto n_1gram_last = last - 1;
             std::string ngram = join(first, last, SENTENCE_DELIMITER);
-            std::string n_1gram = join(first, n_1gram_last, SENTENCE_DELIMITER);
             // 学習したデータからcとc_1を取得（c: ngramのcount, c_1: n-1gramのcount）
             int c = 0;
-            int c_1 = 0;
             c = getNgramCount(ngram_file, ngram);
-            c_1 = getNgramCount(n_1gram_file, n_1gram);
-            double p = (double) (c + 1) / (c_1 + V);
-            double pp = std::pow(1.0 / p, 1.0 / nof_words);
+            double p = 0.0;
+            if (N != 1) {
+                std::string n_1gram = join(first, n_1gram_last, SENTENCE_DELIMITER);
+                int c_1 = 0;
+                c_1 = getNgramCount(n_1gram_file, n_1gram);
+                p = (double) (c + 1) / (c_1 + VT);
+            }
+            else
+            {
+                // unigramの場合
+                p = (double) (c + 1) / (VS + VT + 1);
+            }
+            double pp = 1.0 / p;
             total_logP += log(p);
             std::cout << *(last-1) << SENTENCE_DELIMITER << pp << std::endl;
         }
@@ -95,8 +103,9 @@ int getNgramCount(const std::string& ngram_file, const std::string& ngram)
     std::string ngram_line;
     while (std::getline(ngram_input, ngram_line))
     {
-        std::size_t found = ngram_line.find(ngram);
-        if (found != std::string::npos)
+        std::vector<std::string> ngram_count = split(ngram_line, SENTENCE_DELIMITER);
+        std::string ngram_from_file = join(ngram_count.begin()+1, ngram_count.end(), SENTENCE_DELIMITER);
+        if (ngram == ngram_from_file)
             return std::stoi(split(ngram_line, SENTENCE_DELIMITER)[0]);
     }
     return 0;
@@ -106,12 +115,13 @@ int getNgramCount(const std::string& ngram_file, const std::string& ngram)
 //
 // Vocabularyのsize（uniqueな単語数）を数える関数
 // @param ngram_file: ngramとその出現回数を記述したファイル
-// @param V: vocabulary size
+// @param
+// @param V: vocabulary type
 // @param C: number of ngrams
 //
-void countVocabularySize(const std::string& ngram_file, int *V, int *nof_ngrams)
+void countVocabularySize(const std::string& ngram_file, int *VS, int *VT, int *nof_ngrams)
 {
-    *V = 0;
+    *VT = 0;
     *nof_ngrams = 0;
     std::unordered_set<std::string> vocabulary;
     std::ifstream ngram_input(ngram_file);
@@ -121,10 +131,13 @@ void countVocabularySize(const std::string& ngram_file, int *V, int *nof_ngrams)
         std::vector<std::string> ngram_count = split(ngram_line, SENTENCE_DELIMITER);
         // ngramの末尾を取得する
         std::string target_word = ngram_count.back();
+        if (target_word == NGRAM_START_SYMBOL)
+            continue;
         vocabulary.insert(target_word);
+        *VS += std::stoi(ngram_count.front());
         *nof_ngrams += 1;
     }
-    *V = vocabulary.size();
+    *VT = vocabulary.size();
 }
 
 //
