@@ -2,7 +2,6 @@
 // perplexityをカウントするスクリプト
 //
 
-#include "utility.h"
 #include "common.h"
 #include <cmath>
 #include <unordered_set>

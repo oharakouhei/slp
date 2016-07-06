@@ -1,5 +1,3 @@
-main_h_files  :=  ngram.h utility.h
-main_cpp_files := main.cpp ngram.cpp utility.cpp
 cdr2sentence_h_files  := common.h
 cdr2sentence_cpp_files := cdr2sentence.cpp common.cpp
 sentence2ngram_h_files  := common.h
@@ -17,11 +15,7 @@ test_opts += -Wall
 CXXFLAGS := $(opts)
 
 .PHONY: all
-all : main cdr2sentence sentence2ngram perplexity
-
-.PHONY: main
-main : $(main_cpp_files) $(main_h_files)
-	g++ -o $@ $(CXXFLAGS) $(main_cpp_files)
+all : cdr2sentence sentence2ngram perplexity
 
 .PHONY: cdr2sentence
 cdr2sentence : $(cdr2sentence_cpp_files) $(cdr2sentence_h_files)
@@ -36,10 +30,6 @@ perplexity : $(perplexity_cpp_files) $(perplexity_h_files)
 	g++ -o $@ $(CXXFLAGS) $(perplexity_cpp_files)
 
 
-#.PHONY: run
-#run:
-#	./main
-
 debug: $(main_cpp_files) $(main_h_files)
 	g++ $(debug) -o $@ $(CXXFLAGS) $(main_cpp_files)
 	gdb ./$@
@@ -47,7 +37,6 @@ debug: $(main_cpp_files) $(main_h_files)
 
 .PHONY: clean
 clean :
-	rm -f main
 	rm -f cdr2sentence
 	rm -f sentence2ngram
 	rm -f perplexity
