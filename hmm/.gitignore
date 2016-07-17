@@ -1,0 +1,7 @@
+data/*
+.idea/*
+CMakeFiles/*
+CmakeCache.txt
+
+# executable file
+train2tagseq
