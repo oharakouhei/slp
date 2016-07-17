@@ -5,11 +5,12 @@
 // He PRP B-NP
 // is VBZ B-VP
 // (He is から始まる一文の他の単語のタグ等の情報)
+// deficits NNS I-NP
 // . . O
 // (改行で文の区切り)
 //
-// 出力 (一文のタグの並びを一列に)
-// PRP VBZ ... .
+// 出力例 (一文のタグの並びを一列に)
+// PRP VBZ ... NNS .
 //
 //
 #include "common.h"
@@ -26,9 +27,9 @@ int main() {
         {
             std::string line = char_line;
             size_t first_delim_pos = line.find(TRAIN_DELIMITER);
-            size_t second_delim_pos = line.find(TRAIN_DELIMITER, first_delim_pos+1);
-            int tag_len = second_delim_pos-first_delim_pos-1;
-            std::string tag = line.substr(first_delim_pos+1, tag_len);
+            size_t second_delim_pos = line.find(TRAIN_DELIMITER, first_delim_pos + 1);
+            int tag_len = second_delim_pos - first_delim_pos - 1;
+            std::string tag = line.substr(first_delim_pos + 1, tag_len);
             std::cout << tag << SENTENCE_DELIMITER;
         }
     }
