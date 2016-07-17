@@ -5,3 +5,4 @@ CmakeCache.txt
 
 # executable file
 train2tagseq
+tagseq2tagseqcount
