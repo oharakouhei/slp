@@ -7,9 +7,10 @@
 // transition probability, observation likelihoodをlaplace smoothingする
 //
 ////////////////////// 実行例 ////////////////////////////
-// $ cat test.txt | ./test2sentence | ./viterbi n_tag_trans_count.txt n-1_tag_trans_count.txt obs_likli.txt
+// $ cat test.txt | head -50 | ./viterbi n_tag_trans_count.txt n-1_tag_trans_count.txt obs_likli.txt
 // NN IN DT NN VBZ RB VBN TO VB DT JJ NN IN NN NNS IN NNP , JJ IN NN NN , VB TO VB DT JJ NN IN NNP CC NNP POS JJ NNS .
 // NNP IN DT NNP NNP NNP POS VBN NN TO DT NN JJ NN VBZ VBN TO VB DT NN IN NN IN DT JJ NN .
+// DT NN ,
 // ...
 // `` DT NNS IN NN IN DT JJ NN NN VBP RB RB IN DT JJ NN , '' VBD NNP NNP , JJ NNP NN IN NNP NNP NNP .
 // precision: 0.90
@@ -76,73 +77,76 @@ int main(int argc, char** argv)
     int nof_tags = unique_tags.size();
     calcTransitionLogProbability(ntag_trans_count_file, n_1tag_trans_count_file, unique_tags, &transition_logp_map);
 
+    // 一文の最初で初期化
+    size_t found_pos = 0;
+    std::string prev_tag = TAG_START_SYMBOL;
+    double viterbi = 1.0;
     // testファイルの各行でloopを回す
     char char_test_line[1 << 21];
     while (fgets(char_test_line, 1 << 21, stdin))
     {
-        std::string test_line = char_test_line;
-
-        // test lineの各単語でループ（各単語でタグを予測）
-        size_t found_pos = 0;
-        std::string prev_tag = TAG_START_SYMBOL;
-        double viterbi = 1.0;
-        while (found_pos != std::string::npos)
+        if (char_test_line[0] == '\n')
         {
-            // 単語を抽出
-            size_t first_char_pos = (found_pos == 0) ? found_pos : found_pos + 1;
-            size_t word_end_pos = test_line.find(SENTENCE_DELIMITER, first_char_pos);
-            int word_len = word_end_pos - first_char_pos;
-            std::string word = test_line.substr(first_char_pos, word_len);
-            if (word == "" || word == "\n") break; // 文末処理
-
-            // 学習時において、単語に対するタグとそのタグの件数の組をobservation_likelihood.txtから取得
-            std::unordered_map<std::string, int> obs_tag_count_map;
-            int total_obs_tag_count = 0;
-            std::string obs_line;
-            std::ifstream obs_likeli_input(observation_likelihood_file);
-            while (std::getline(obs_likeli_input, obs_line))
-            {
-                size_t obs_first_delim_pos = obs_line.find(TRAIN_DELIMITER);
-                size_t obs_second_delim_pos = obs_line.find(TRAIN_DELIMITER, obs_first_delim_pos + 1);
-                std::string obs_word = obs_line.substr(obs_second_delim_pos + 1);
-                if (word != obs_word) continue;
-
-                int obs_tag_len = obs_second_delim_pos - obs_first_delim_pos - 1;
-                int obs_count = std::stoi(obs_line.substr(0, obs_first_delim_pos));
-                std::string obs_tag = obs_line.substr(obs_first_delim_pos + 1, obs_tag_len);
-
-                // カウント
-                obs_tag_count_map[obs_tag] = obs_count;
-                total_obs_tag_count += obs_count;
-            }
-
-            // 各タグに対してviterbiの確率を計算し，最大の要素を選択する
-            double vmax = -99999;
-            std::string tag_selected;
-            for (auto unique_tag : unique_tags)
-            {
-                std::string tagseq = prev_tag + SENTENCE_DELIMITER + unique_tag;
-                // prev_tagとtagを与え、transition_pを計算結果を返す
-                double transition_logp = transition_logp_map[tagseq];
-                // 分子分母
-                int numer = obs_tag_count_map[unique_tag] + 1;
-                int denom = total_obs_tag_count + nof_tags;
-                double obs_logp = log((double) numer / denom);
-                double viterbi_candidate_logp = log(viterbi) + transition_logp + obs_logp;
-                if (vmax <= viterbi_candidate_logp)
-                {
-                    tag_selected = unique_tag;
-                    vmax = viterbi_candidate_logp;
-                }
-            }
-            prev_tag = tag_selected;
-            viterbi = exp(vmax);
-            std::cout << tag_selected << SENTENCE_DELIMITER;
-
-            // 次のdelimを取得する(次の単語を取得するため)
-            found_pos = test_line.find(SENTENCE_DELIMITER, first_char_pos);
+            // 一文の最初で初期化
+            std::cout << std::endl;
+            found_pos = 0;
+            prev_tag = TAG_START_SYMBOL;
+            viterbi = 1.0;
+            continue;
         }
-        std::cout << std::endl;
+
+        // 単語とタグを抽出
+        std::string test_line = char_test_line;
+        size_t first_delim_pos = test_line.find(TRAIN_DELIMITER);
+        size_t second_delim_pos = test_line.find(TRAIN_DELIMITER, first_delim_pos + 1);
+        int tag_len = second_delim_pos - first_delim_pos - 1;
+        std::string test_word = test_line.substr(0, test_line.find(SENTENCE_DELIMITER));
+        std::string test_tag = test_line.substr(first_delim_pos + 1, tag_len);
+        if (test_word == "" || test_word == "\n") break; // 文末処理
+
+        // 学習時において、単語に対するタグとそのタグの件数の組をobservation_likelihood.txtから取得
+        std::unordered_map<std::string, int> obs_tag_count_map;
+        int total_obs_tag_count = 0;
+        std::string obs_line;
+        std::ifstream obs_likeli_input(observation_likelihood_file);
+        while (std::getline(obs_likeli_input, obs_line))
+        {
+            size_t obs_first_delim_pos = obs_line.find(TRAIN_DELIMITER);
+            size_t obs_second_delim_pos = obs_line.find(TRAIN_DELIMITER, obs_first_delim_pos + 1);
+            std::string obs_word = obs_line.substr(obs_second_delim_pos + 1);
+            if (test_word != obs_word) continue;
+
+            int obs_tag_len = obs_second_delim_pos - obs_first_delim_pos - 1;
+            int obs_count = std::stoi(obs_line.substr(0, obs_first_delim_pos));
+            std::string obs_tag = obs_line.substr(obs_first_delim_pos + 1, obs_tag_len);
+
+            // カウント
+            obs_tag_count_map[obs_tag] = obs_count;
+            total_obs_tag_count += obs_count;
+        }
+
+        // 各タグに対してviterbiの確率を計算し，最大の要素を選択する
+        double vmax = -99999;
+        std::string tag_selected;
+        for (auto unique_tag : unique_tags)
+        {
+            std::string tagseq = prev_tag + SENTENCE_DELIMITER + unique_tag;
+            // prev_tagとtagを与え、transition_pを計算結果を返す
+            double transition_logp = transition_logp_map[tagseq];
+            // 分子分母
+            int numer = obs_tag_count_map[unique_tag] + 1;
+            int denom = total_obs_tag_count + nof_tags;
+            double obs_logp = log((double) numer / denom);
+            double viterbi_candidate_logp = log(viterbi) + transition_logp + obs_logp;
+            if (vmax <= viterbi_candidate_logp)
+            {
+                tag_selected = unique_tag;
+                vmax = viterbi_candidate_logp;
+            }
+        }
+        prev_tag = tag_selected;
+        viterbi = exp(vmax);
+        std::cout << tag_selected << SENTENCE_DELIMITER;
     }
 }
 
