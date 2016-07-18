@@ -77,6 +77,11 @@ int main(int argc, char** argv)
     int nof_tags = unique_tags.size();
     calcTransitionLogProbability(ntag_trans_count_file, n_1tag_trans_count_file, unique_tags, &transition_logp_map);
 
+
+    // 精度計算用の変数
+    int nof_test_tags = 0; // testで出てきた総tag数
+    int nof_correct_tags = 0; // tagの総正解数
+
     // 一文の最初で初期化
     size_t found_pos = 0;
     std::string prev_tag = TAG_START_SYMBOL;
@@ -147,7 +152,17 @@ int main(int argc, char** argv)
         prev_tag = tag_selected;
         viterbi = exp(vmax);
         std::cout << tag_selected << SENTENCE_DELIMITER;
+
+        // 精度の計算用
+        nof_test_tags += 1;
+        if (test_tag == tag_selected)
+        {
+            nof_correct_tags += 1;
+        }
     }
+    double precision = (double) nof_correct_tags / nof_test_tags;
+    std::cout << std::endl << "total tags: " << nof_test_tags << ", correct tags: " << nof_correct_tags << std::endl;
+    std::cout << "precision: " << precision << std::endl;
 }
 
 
