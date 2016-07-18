@@ -8,3 +8,4 @@ train2tagseq
 tagseq2tagseq_count
 train2tagword_count
 test2sentence
+viterbi
