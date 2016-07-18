@@ -69,8 +69,8 @@ int main(int argc, char** argv)
     }
 
 
-    std::unordered_map<std::string, double> transition_logp_map;
     // 以降で使う各変数の生成
+    std::unordered_map<std::string, double> transition_logp_map;
     std::unordered_set<std::string> unique_tags;
     getUniqueTags(n_1tag_trans_count_file, &unique_tags);
     int nof_tags = unique_tags.size();
@@ -80,12 +80,11 @@ int main(int argc, char** argv)
     char char_test_line[1 << 21];
     while (fgets(char_test_line, 1 << 21, stdin))
     {
-        // 文頭シンボルと文末シンボルを追加
         std::string test_line = char_test_line;
 
         // test lineの各単語でループ（各単語でタグを予測）
         size_t found_pos = 0;
-        std::string prev_tag = "<s>";
+        std::string prev_tag = TAG_START_SYMBOL;
         double viterbi = 1.0;
         while (found_pos != std::string::npos)
         {
@@ -94,6 +93,7 @@ int main(int argc, char** argv)
             size_t word_end_pos = test_line.find(SENTENCE_DELIMITER, first_char_pos);
             int word_len = word_end_pos - first_char_pos;
             std::string word = test_line.substr(first_char_pos, word_len);
+            if (word == "" || word == "\n") break; // 文末処理
 
             // 学習時において、単語に対するタグとそのタグの件数の組をobservation_likelihood.txtから取得
             std::unordered_map<std::string, int> obs_tag_count_map;
@@ -218,6 +218,4 @@ void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
             transition_logp_map->emplace(tagseq, log((double) numer / denom));
         }
     }
-
-
 }
