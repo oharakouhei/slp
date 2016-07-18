@@ -95,10 +95,6 @@ int main(int argc, char** argv)
             int word_len = word_end_pos - first_char_pos;
             std::string word = test_line.substr(first_char_pos, word_len);
 
-
-            std::cout << "word: " << word << std::endl;
-
-
             // 学習時において、単語に対するタグとそのタグの件数の組をobservation_likelihood.txtから取得
             std::unordered_map<std::string, int> obs_tag_count_map;
             int total_obs_tag_count = 0;
@@ -128,8 +124,10 @@ int main(int argc, char** argv)
                 std::string tagseq = prev_tag + SENTENCE_DELIMITER + unique_tag;
                 // prev_tagとtagを与え、transition_pを計算結果を返す
                 double transition_logp = transition_logp_map[tagseq];
-                double obs_logp = log((double) obs_tag_count_map[unique_tag] + 1 / total_obs_tag_count + nof_tags);
-                std::cout << "unique_tag = " << unique_tag << ", trans_logp = " << transition_logp << ", obs_logp = " << obs_logp << std::endl;
+                // 分子分母
+                int numer = obs_tag_count_map[unique_tag] + 1;
+                int denom = total_obs_tag_count + nof_tags;
+                double obs_logp = log((double) numer / denom);
                 double viterbi_candidate_logp = log(viterbi) + transition_logp + obs_logp;
                 if (vmax <= viterbi_candidate_logp)
                 {
@@ -137,12 +135,14 @@ int main(int argc, char** argv)
                     vmax = viterbi_candidate_logp;
                 }
             }
+            prev_tag = tag_selected;
             viterbi = exp(vmax);
-//            std::cout << "tag_selected = " << tag_selected << ", vmax = " << vmax << std::endl;
+            std::cout << tag_selected << SENTENCE_DELIMITER;
 
             // 次のdelimを取得する(次の単語を取得するため)
             found_pos = test_line.find(SENTENCE_DELIMITER, first_char_pos);
         }
+        std::cout << std::endl;
     }
 }
 
