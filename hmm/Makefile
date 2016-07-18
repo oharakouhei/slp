@@ -1,11 +1,9 @@
-train2tagseq_h_files := common.h
-train2tagseq_cpp_files := train2tagseq.cpp common.cpp
+txt2tagseq_h_files := common.h
+txt2tagseq_cpp_files := txt2tagseq.cpp common.cpp
 tagseq2tagseq_count_h_files := common.h
 tagseq2tagseq_count_cpp_files := tagseq2tagseq_count.cpp common.cpp
-train2tagword_count_h_files := common.h
-train2tagword_count_cpp_files := train2tagword_count.cpp common.cpp
-test2sentence_h_files := common.h
-test2sentence_cpp_files := test2sentence.cpp common.cpp
+txt2tagword_count_h_files := common.h
+txt2tagword_count_cpp_files := txt2tagword_count.cpp common.cpp
 viterbi_h_files := common.h
 viterbi_cpp_files := viterbi.cpp common.cpp
 opts :=
@@ -19,23 +17,19 @@ test_opts += -Wall
 CXXFLAGS := $(opts)
 
 .PHONY: all
-all : train2tagseq tagseq2tagseq_count train2tagword_count test2sentence viterbi
+all : txt2tagseq tagseq2tagseq_count txt2tagword_count viterbi
 
-.PHONY: train2tagseq
-train2tagseq : $(train2tagseq_cpp_files) $(train2tagseq_h_files)
-	g++ -o $@ $(CXXFLAGS) $(train2tagseq_cpp_files)
+.PHONY: txt2tagseq
+txt2tagseq : $(txt2tagseq_cpp_files) $(txt2tagseq_h_files)
+	g++ -o $@ $(CXXFLAGS) $(txt2tagseq_cpp_files)
 
 .PHONY: tagseq2tagseq_count
 tagseq2tagseq_count : $(tagseq2tagseq_count_cpp_files) $(tagseq2tagseq_count_h_files)
 	g++ -o $@ $(CXXFLAGS) $(tagseq2tagseq_count_cpp_files)
 
-.PHONY: train2tagword_count
-train2tagword_count : $(train2tagword_count_cpp_files) $(train2tagword_count_h_files)
-	g++ -o $@ $(CXXFLAGS) $(train2tagword_count_cpp_files)
-
-.PHONY: test2sentence
-test2sentence : $(test2sentence_cpp_files) $(test2sentence_h_files)
-	g++ -o $@ $(CXXFLAGS) $(test2sentence_cpp_files)
+.PHONY: txt2tagword_count
+txt2tagword_count : $(txt2tagword_count_cpp_files) $(txt2tagword_count_h_files)
+	g++ -o $@ $(CXXFLAGS) $(txt2tagword_count_cpp_files)
 
 .PHONY: viterbi
 viterbi : $(viterbi_cpp_files) $(viterbi_h_files)
@@ -43,9 +37,8 @@ viterbi : $(viterbi_cpp_files) $(viterbi_h_files)
 
 .PHONY: clean
 clean :
-	rm -f train2tagseq
+	rm -f txt2tagseq
 	rm -f tagseq2tagseq_count
-	rm -f train2tagword_count
-	rm -f test2sentence
+	rm -f txt2tagword_count
 	rm -f viterbi
 	rm -rf *.dSYM

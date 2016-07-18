@@ -2,7 +2,7 @@
 // train.txt（形式は以下）からタグと単語の組をカウントするスクリプト
 //
 ////////////////////// 実行例 ////////////////////////////
-// $ cat train.txt | ./train2tagword_count | tail -10
+// $ cat train.txt | ./txt2tagword_count | tail -10
 // 77 WRB where
 // 3 WRB wherever
 // 20 WRB why

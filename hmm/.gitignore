@@ -4,8 +4,7 @@ CMakeFiles/*
 CmakeCache.txt
 
 # executable file
-train2tagseq
+txt2tagseq
 tagseq2tagseq_count
-train2tagword_count
-test2sentence
+txt2tagword_count
 viterbi

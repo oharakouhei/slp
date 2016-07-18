@@ -2,13 +2,13 @@
 // 一文のタグの並びから指定したn個のタグ順を取得するスクリプト
 //
 ////////////////////// 実行例 ////////////////////////////
-// $ cat train.txt | ./train2tagseq | ./tagseq2tagseq_count 1 | head -5
+// $ cat train.txt | ./txt2tagseq | ./tagseq2tagseq_count 1 | head -5
 // 36 #
 // 1750 $
 // 1493 ''
 // 274 (
 // 281 )
-// $ cat train.txt | ./train2tagseq | ./tagseq2tagseq_count 2 | head -5
+// $ cat train.txt | ./txt2tagseq | ./tagseq2tagseq_count 2 | head -5
 // 36 # CD
 // 1724 $ CD
 // 7 $ JJ
