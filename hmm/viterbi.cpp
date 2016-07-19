@@ -79,8 +79,10 @@ int main(int argc, char** argv)
 
 
     // 精度計算用の変数
-    int nof_test_tags = 0; // testで出てきた総tag数
-    int nof_correct_tags = 0; // tagの総正解数
+    int nof_known_word_tags = 0; // testで出てきたknown wordの総tag数
+    int nof_known_word_correct_tags = 0; // known wordのtagの総正解数
+    int nof_unknown_word_tags = 0; // testで出てきたunknown wordの総tag数
+    int nof_unknown_word_correct_tags = 0; // unknown wordのtagの総正解数
 
     // 一文の最初で初期化
     size_t found_pos = 0;
@@ -112,6 +114,9 @@ int main(int argc, char** argv)
         // 学習時において、単語に対するタグとそのタグの件数の組をobservation_likelihood.txtから取得
         std::unordered_map<std::string, int> obs_tag_count_map;
         int total_obs_tag_count = 0;
+        // 既知語フラグ
+        bool isKnownWord = FALSE;
+
         std::string obs_line;
         std::ifstream obs_likeli_input(observation_likelihood_file);
         while (std::getline(obs_likeli_input, obs_line))
@@ -120,6 +125,7 @@ int main(int argc, char** argv)
             size_t obs_second_delim_pos = obs_line.find(TRAIN_DELIMITER, obs_first_delim_pos + 1);
             std::string obs_word = obs_line.substr(obs_second_delim_pos + 1);
             if (test_word != obs_word) continue;
+            isKnownWord = TRUE;
 
             int obs_tag_len = obs_second_delim_pos - obs_first_delim_pos - 1;
             int obs_count = std::stoi(obs_line.substr(0, obs_first_delim_pos));
@@ -154,15 +160,27 @@ int main(int argc, char** argv)
         std::cout << tag_selected << SENTENCE_DELIMITER;
 
         // 精度の計算用
-        nof_test_tags += 1;
+        if (isKnownWord)
+            nof_known_word_tags += 1;
+        else
+            nof_unknown_word_tags += 1;
         if (test_tag == tag_selected)
         {
-            nof_correct_tags += 1;
+            if (isKnownWord)
+                nof_known_word_correct_tags += 1;
+            else
+                nof_unknown_word_correct_tags += 1;
         }
     }
-    double precision = (double) nof_correct_tags / nof_test_tags;
-    std::cout << std::endl << "total tags: " << nof_test_tags << ", correct tags: " << nof_correct_tags << std::endl;
-    std::cout << "precision: " << precision << std::endl;
+    double known_word_precision = (double) nof_known_word_correct_tags / nof_known_word_tags;
+    double unknown_word_precision = (double) nof_unknown_word_correct_tags / nof_unknown_word_tags;
+    std::cout << std::endl << "total tags: " << nof_known_word_tags + nof_unknown_word_tags << std::endl;
+    std::cout << "known word tags: " << nof_known_word_tags;
+    std::cout << ", correct known word tags: " << nof_known_word_correct_tags << std::endl;
+    std::cout << "known_word_precision: " << known_word_precision << std::endl;
+    std::cout << "unknown word tags: " << nof_unknown_word_tags;
+    std::cout << ", correct unknown word tags: " << nof_unknown_word_correct_tags << std::endl;
+    std::cout << "unknown_word_precision: " << unknown_word_precision << std::endl;
 }
 
 
