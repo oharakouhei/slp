@@ -13,7 +13,11 @@
 // DT NN ,
 // ...
 // `` DT NNS IN NN IN DT JJ NN NN VBP RB RB IN DT JJ NN , '' VBD NNP NNP , JJ NNP NN IN NNP NNP NNP .
-// precision: 0.90
+// total tags: 47377
+// known word tags: 44075, correct known word tags: 39780
+// known_word_precision: 0.902552
+// unknown word tags: 3302, correct unknown word tags: 944
+// unknown_word_precision: 0.285887
 //
 //////////////////// 入力 (test.txt) /////////////////////
 // He PRP B-NP
@@ -33,13 +37,14 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <cmath>
+#include <curses.h>
 
 void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
                                   const std::string& n_1tag_trans_count_file,
                                   const std::unordered_set<std::string>& unique_tags,
                                 std::unordered_map<std::string, double>* transition_logp_map);
 void getUniqueTags(const std::string& n_1tag_trans_count_file, std::unordered_set<std::string>* unique_tags);
-
+void getWordAndTagByTxt(std::string& test_line, std::string* test_word, std::string* test_tag);
 
 int main(int argc, char** argv)
 {
@@ -104,11 +109,8 @@ int main(int argc, char** argv)
 
         // 単語とタグを抽出
         std::string test_line = char_test_line;
-        size_t first_delim_pos = test_line.find(TRAIN_DELIMITER);
-        size_t second_delim_pos = test_line.find(TRAIN_DELIMITER, first_delim_pos + 1);
-        int tag_len = second_delim_pos - first_delim_pos - 1;
-        std::string test_word = test_line.substr(0, test_line.find(SENTENCE_DELIMITER));
-        std::string test_tag = test_line.substr(first_delim_pos + 1, tag_len);
+        std::string test_word, test_tag;
+        getWordAndTagByTxt(test_line, &test_word, &test_tag);
         if (test_word == "" || test_word == "\n") break; // 文末処理
 
         // 学習時において、単語に対するタグとそのタグの件数の組をobservation_likelihood.txtから取得
@@ -121,8 +123,8 @@ int main(int argc, char** argv)
         std::ifstream obs_likeli_input(observation_likelihood_file);
         while (std::getline(obs_likeli_input, obs_line))
         {
-            size_t obs_first_delim_pos = obs_line.find(TRAIN_DELIMITER);
-            size_t obs_second_delim_pos = obs_line.find(TRAIN_DELIMITER, obs_first_delim_pos + 1);
+            size_t obs_first_delim_pos = obs_line.find(SENTENCE_DELIMITER);
+            size_t obs_second_delim_pos = obs_line.find(SENTENCE_DELIMITER, obs_first_delim_pos + 1);
             std::string obs_word = obs_line.substr(obs_second_delim_pos + 1);
             if (test_word != obs_word) continue;
             isKnownWord = TRUE;
@@ -195,8 +197,8 @@ void getUniqueTags(const std::string& n_1tag_trans_count_file, std::unordered_se
     std::string n_1tag_line;
     while (std::getline(n_1tag_trans_count_input, n_1tag_line))
     {
-        size_t first_delim_pos = n_1tag_line.find(TRAIN_DELIMITER);
-        size_t second_delim_pos = n_1tag_line.find(TRAIN_DELIMITER, first_delim_pos + 1);
+        size_t first_delim_pos = n_1tag_line.find(SENTENCE_DELIMITER);
+        size_t second_delim_pos = n_1tag_line.find(SENTENCE_DELIMITER, first_delim_pos + 1);
         int tag_len = second_delim_pos - first_delim_pos - 1;
         std::string tag = n_1tag_line.substr(first_delim_pos + 1, tag_len);
         unique_tags->insert(tag);
@@ -225,7 +227,7 @@ void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
     std::unordered_map<std::string, int> n_1tag_count_map;
     while (std::getline(n_1tag_trans_count_input, n_1tag_line))
     {
-        size_t first_delim_pos = n_1tag_line.find(TRAIN_DELIMITER);
+        size_t first_delim_pos = n_1tag_line.find(SENTENCE_DELIMITER);
         std::string n_1tagseq = n_1tag_line.substr(first_delim_pos + 1);
         n_1tag_count_map[n_1tagseq] = std::stoi(n_1tag_line.substr(0, first_delim_pos));
     }
@@ -235,7 +237,7 @@ void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
     std::unordered_map<std::string, int> ntag_count_map;
     while (std::getline(ntag_trans_count_input, ntag_line))
     {
-        size_t first_delim_pos = ntag_line.find(TRAIN_DELIMITER);
+        size_t first_delim_pos = ntag_line.find(SENTENCE_DELIMITER);
         std::string ntagseq = ntag_line.substr(first_delim_pos + 1);
         ntag_count_map[ntagseq] = std::stoi(ntag_line.substr(0, first_delim_pos));
     }
@@ -255,4 +257,18 @@ void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
             transition_logp_map->emplace(tagseq, log((double) numer / denom));
         }
     }
+}
+
+
+//
+// 解析済みファイルからwordとtagを抽出するスクリプト
+//
+void getWordAndTagByTxt(std::string& line, std::string* word, std::string* tag)
+{
+    size_t first_delim_pos = line.find(TXT_DELIMITER);
+    size_t second_delim_pos = line.find(TXT_DELIMITER, first_delim_pos + 1);
+    int tag_len = second_delim_pos - first_delim_pos - 1;
+    *word = line.substr(0, line.find(SENTENCE_DELIMITER));
+    *tag = line.substr(first_delim_pos + 1, tag_len);
+
 }

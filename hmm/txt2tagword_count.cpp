@@ -40,8 +40,8 @@ int main() {
         {
             // タグと単語を抽出
             std::string line = char_line;
-            size_t first_delim_pos = line.find(TRAIN_DELIMITER);
-            size_t second_delim_pos = line.find(TRAIN_DELIMITER, first_delim_pos + 1);
+            size_t first_delim_pos = line.find(TXT_DELIMITER);
+            size_t second_delim_pos = line.find(TXT_DELIMITER, first_delim_pos + 1);
             int tag_len = second_delim_pos - first_delim_pos - 1;
             std::string word = line.substr(0, first_delim_pos);
             std::string tag = line.substr(first_delim_pos + 1, tag_len);

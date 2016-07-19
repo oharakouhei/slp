@@ -10,7 +10,7 @@
 #include <map>
 #include <sstream>
 
-static char TRAIN_DELIMITER = ' ';
+static char TXT_DELIMITER = ' ';
 static char SENTENCE_DELIMITER = ' '; // 文中の区切り
 static std::string TAG_START_SYMBOL = "<s>";
 static std::string TAG_END_SYMBOL = "</s>";
