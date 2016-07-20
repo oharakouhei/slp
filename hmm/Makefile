@@ -6,6 +6,8 @@ txt2tagword_count_h_files := common.h
 txt2tagword_count_cpp_files := txt2tagword_count.cpp common.cpp
 viterbi_h_files := common.h
 viterbi_cpp_files := viterbi.cpp common.cpp
+forward_h_files := common.h
+forward_cpp_files := forward.cpp common.cpp
 opts :=
 opts += -O3
 opts += -std=c++11
@@ -35,10 +37,15 @@ txt2tagword_count : $(txt2tagword_count_cpp_files) $(txt2tagword_count_h_files)
 viterbi : $(viterbi_cpp_files) $(viterbi_h_files)
 	g++ -o $@ $(CXXFLAGS) $(viterbi_cpp_files)
 
+.PHONY: forward
+forward : $(forward_cpp_files) $(forward_h_files)
+	g++ -o $@ $(CXXFLAGS) $(forward_cpp_files)
+
 .PHONY: clean
 clean :
 	rm -f txt2tagseq
 	rm -f tagseq2tagseq_count
 	rm -f txt2tagword_count
 	rm -f viterbi
+	rm -f forward
 	rm -rf *.dSYM

@@ -8,3 +8,4 @@ txt2tagseq
 tagseq2tagseq_count
 txt2tagword_count
 viterbi
+forward
