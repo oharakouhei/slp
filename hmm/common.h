@@ -8,6 +8,7 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <sstream>
 
 static char TXT_DELIMITER = ' ';
@@ -49,6 +50,25 @@ std::ostream& operator<< (std::ostream& out, const std::map<T1, T2>& map) {
         out << itr->first           // キーを表示
         << ": " << itr->second;    // 値を表示
         if (itr != --map.end()) { // endは末尾の次をさすので、--が必要
+            out << ", ";
+        }
+    }
+    out << "}";
+    return out;
+}
+
+//
+// 演算子 << のオーバーロード
+// unordered mapの中身を出力する
+//
+template<typename T1, typename T2>
+std::ostream& operator<< (std::ostream& out, const std::unordered_map<T1, T2>& map) {
+    out << "{";
+    auto end = map.end();
+    for (auto itr = map.begin(); itr != end; ++itr) {
+        out << itr->first           // キーを表示
+        << ": " << itr->second;    // 値を表示
+        if (std::next(itr) != end) { // endは末尾の次をさすので、--が必要
             out << ", ";
         }
     }
