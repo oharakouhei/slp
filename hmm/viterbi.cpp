@@ -53,6 +53,7 @@ void getWord2TagsMap(const std::string& obs_likeli_file,
 
 int main(int argc, char** argv)
 {
+    //////////////////////// 実行方法の確認 ////////////////////////////
     if (argc < 4) {
         std::cerr << "Usage example: cat test.txt | ./test2sentence | " << argv[0]
         << "n_tag_transition_count.txt n-1_tag_transition_count.txt observation_likelihood.txt" << std::endl;
@@ -62,7 +63,7 @@ int main(int argc, char** argv)
     std::string n_1tag_trans_count_file = argv[2];
     std::string obs_likeli_file = argv[3];
 
-    // ファイル確認
+    //////////////////////// ファイル確認 ////////////////////////////
     std::ifstream ntag_trans_count_input(ntag_trans_count_file);
     if (!ntag_trans_count_input) {
         std::cerr << "cannot find n_tag_trans_count_file." << std::endl;
@@ -80,17 +81,19 @@ int main(int argc, char** argv)
     }
 
 
-    // 以降で使う各変数の生成
-    std::unordered_map<std::string, double> transition_logp_map;
+    ////////////////////////// 以降で使う各変数の生成 ///////////////////////////
+    // uniqueなタグのunordered_setを生成
     std::unordered_set<std::string> unique_tags;
     getUniqueTags(n_1tag_trans_count_file, &unique_tags);
     int nof_tags = unique_tags.size();
+    // 遷移確率(log形式)を保存したumapを生成
+    // {word: log(p), word2: log(p2),...}
+    std::unordered_map<std::string, double> transition_logp_map;
     calcTransitionLogProbability(ntag_trans_count_file, n_1tag_trans_count_file, unique_tags, &transition_logp_map);
-    // 学習時における、単語とそれに対するタグとその数をumapに保存
-    std::unordered_map<std::string, int> obs_tag_count_map;
+    // 学習時における、単語とそれに対するタグとその数を保存したumapを生成
+    // {word: {tag: count, tag2: count2,..., "total": total_count}, word2:...}
     std::unordered_map<std::string, std::unordered_map<std::string, int>> word2tags_map;
     getWord2TagsMap(obs_likeli_file, &word2tags_map);
-
     // 精度計算用の変数
     int nof_known_word_tags = 0; // testで出てきたknown wordの総tag数
     int nof_known_word_correct_tags = 0; // known wordのtagの総正解数
@@ -98,14 +101,16 @@ int main(int argc, char** argv)
     int nof_unknown_word_correct_tags = 0; // unknown wordのtagの総正解数
 
 
-    // 一文の最初で初期化
+    ////////////////////// test.txtでループここから ///////////////////////////
+    // これらの変数は一文の最初で初期化
     size_t found_pos = 0;
     std::string prev_tag = TAG_START_SYMBOL;
     double viterbi = 1.0;
-    // testファイルの各行でloopを回す
+    // ループ
     char char_test_line[1 << 21];
     while (fgets(char_test_line, 1 << 21, stdin))
     {
+        // 改行時処理
         if (char_test_line[0] == '\n')
         {
             // 一文の最初で初期化
@@ -116,22 +121,23 @@ int main(int argc, char** argv)
             continue;
         }
 
-        // 単語とタグを抽出
+        /////////// test.txtでの単語とタグを抽出 /////////
         std::string test_line = char_test_line;
         std::string test_word, test_tag;
         getWordAndTagByTxt(test_line, &test_word, &test_tag);
-        if (test_word == "" || test_word == "\n") break; // 文末処理
+        // if (test_word == "" || test_word == "\n") break; // </s>が出力されないよう文末処理
 
-        // 既知語フラグ
+        ///// 学習時における単語に対するタグとそのタグの件数の組を冒頭で生成したumapから取得 /////
         std::unordered_map<std::string, int> obs_tag_count_map;
+        // 既知語フラグ
         bool isKnownWord = FALSE;
         if (!word2tags_map[test_word].empty())
         {
             isKnownWord = TRUE;
-            // 学習時において、単語に対するタグとそのタグの件数の組をobservation_likelihood.txtから取得
             obs_tag_count_map = word2tags_map[test_word];
         }
 
+        ///////////// viterbiの計算 ////////////
         // 各タグに対してviterbiの確率を計算し，最大の要素を選択する
         double vmax = -99999;
         std::string tag_selected;
@@ -151,6 +157,7 @@ int main(int argc, char** argv)
                 vmax = viterbi_candidate_logp;
             }
         }
+        // 次回のために変数を更新
         prev_tag = tag_selected;
         viterbi = exp(vmax);
         std::cout << tag_selected << SENTENCE_DELIMITER;
@@ -168,8 +175,9 @@ int main(int argc, char** argv)
                 nof_unknown_word_correct_tags += 1;
         }
     }
+    ////////////////////// test.txtでループここまで ///////////////////////////
 
-    // precisionのアウトプット
+    ////////////////////// precisionのアウトプット ///////////////////////////
     double known_word_precision = (double) nof_known_word_correct_tags / nof_known_word_tags;
     double unknown_word_precision = (double) nof_unknown_word_correct_tags / nof_unknown_word_tags;
     std::cout << std::endl << "total tags: " << nof_known_word_tags + nof_unknown_word_tags << std::endl;
