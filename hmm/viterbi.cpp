@@ -34,7 +34,6 @@
 //
 #include "common.h"
 #include <fstream>
-#include <unordered_map>
 #include <unordered_set>
 #include <cmath>
 #include <curses.h>
@@ -43,8 +42,14 @@ void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
                                   const std::string& n_1tag_trans_count_file,
                                   const std::unordered_set<std::string>& unique_tags,
                                 std::unordered_map<std::string, double>* transition_logp_map);
-void getUniqueTags(const std::string& n_1tag_trans_count_file, std::unordered_set<std::string>* unique_tags);
-void getWordAndTagByTxt(std::string& test_line, std::string* test_word, std::string* test_tag);
+void getUniqueTags(const std::string& n_1tag_trans_count_file,
+                   std::unordered_set<std::string>* unique_tags);
+void getWordAndTagByTxt(const std::string& test_line,
+                        std::string* test_word,
+                        std::string* test_tag);
+void getWord2TagsMap(const std::string& obs_likeli_file,
+                     std::unordered_map<std::string, std::unordered_map<std::string, int>>* word2tags_map);
+
 
 int main(int argc, char** argv)
 {
@@ -55,7 +60,7 @@ int main(int argc, char** argv)
     }
     std::string ntag_trans_count_file = argv[1];
     std::string n_1tag_trans_count_file = argv[2];
-    std::string observation_likelihood_file = argv[3];
+    std::string obs_likeli_file = argv[3];
 
     // ファイル確認
     std::ifstream ntag_trans_count_input(ntag_trans_count_file);
@@ -68,7 +73,7 @@ int main(int argc, char** argv)
         std::cerr << "cannot find n_1tag_trans_count file." << std::endl;
         std::exit(EXIT_FAILURE);
     }
-    std::ifstream obs_likeli_input(observation_likelihood_file);
+    std::ifstream obs_likeli_input(obs_likeli_file);
     if (!obs_likeli_input) {
         std::cerr << "cannot find observation_likelihood file." << std::endl;
         std::exit(EXIT_FAILURE);
@@ -81,13 +86,17 @@ int main(int argc, char** argv)
     getUniqueTags(n_1tag_trans_count_file, &unique_tags);
     int nof_tags = unique_tags.size();
     calcTransitionLogProbability(ntag_trans_count_file, n_1tag_trans_count_file, unique_tags, &transition_logp_map);
-
+    // 学習時における、単語とそれに対するタグとその数をumapに保存
+    std::unordered_map<std::string, int> obs_tag_count_map;
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> word2tags_map;
+    getWord2TagsMap(obs_likeli_file, &word2tags_map);
 
     // 精度計算用の変数
     int nof_known_word_tags = 0; // testで出てきたknown wordの総tag数
     int nof_known_word_correct_tags = 0; // known wordのtagの総正解数
     int nof_unknown_word_tags = 0; // testで出てきたunknown wordの総tag数
     int nof_unknown_word_correct_tags = 0; // unknown wordのtagの総正解数
+
 
     // 一文の最初で初期化
     size_t found_pos = 0;
@@ -113,29 +122,14 @@ int main(int argc, char** argv)
         getWordAndTagByTxt(test_line, &test_word, &test_tag);
         if (test_word == "" || test_word == "\n") break; // 文末処理
 
-        // 学習時において、単語に対するタグとそのタグの件数の組をobservation_likelihood.txtから取得
-        std::unordered_map<std::string, int> obs_tag_count_map;
-        int total_obs_tag_count = 0;
         // 既知語フラグ
+        std::unordered_map<std::string, int> obs_tag_count_map;
         bool isKnownWord = FALSE;
-
-        std::string obs_line;
-        std::ifstream obs_likeli_input(observation_likelihood_file);
-        while (std::getline(obs_likeli_input, obs_line))
+        if (!word2tags_map[test_word].empty())
         {
-            size_t obs_first_delim_pos = obs_line.find(SENTENCE_DELIMITER);
-            size_t obs_second_delim_pos = obs_line.find(SENTENCE_DELIMITER, obs_first_delim_pos + 1);
-            std::string obs_word = obs_line.substr(obs_second_delim_pos + 1);
-            if (test_word != obs_word) continue;
             isKnownWord = TRUE;
-
-            int obs_tag_len = obs_second_delim_pos - obs_first_delim_pos - 1;
-            int obs_count = std::stoi(obs_line.substr(0, obs_first_delim_pos));
-            std::string obs_tag = obs_line.substr(obs_first_delim_pos + 1, obs_tag_len);
-
-            // カウント
-            obs_tag_count_map[obs_tag] = obs_count;
-            total_obs_tag_count += obs_count;
+            // 学習時において、単語に対するタグとそのタグの件数の組をobservation_likelihood.txtから取得
+            obs_tag_count_map = word2tags_map[test_word];
         }
 
         // 各タグに対してviterbiの確率を計算し，最大の要素を選択する
@@ -148,7 +142,7 @@ int main(int argc, char** argv)
             double transition_logp = transition_logp_map[tagseq];
             // 分子分母
             int numer = obs_tag_count_map[unique_tag] + 1;
-            int denom = total_obs_tag_count + nof_tags;
+            int denom = obs_tag_count_map["total"] + nof_tags;
             double obs_logp = log((double) numer / denom);
             double viterbi_candidate_logp = log(viterbi) + transition_logp + obs_logp;
             if (vmax <= viterbi_candidate_logp)
@@ -174,6 +168,8 @@ int main(int argc, char** argv)
                 nof_unknown_word_correct_tags += 1;
         }
     }
+
+    // precisionのアウトプット
     double known_word_precision = (double) nof_known_word_correct_tags / nof_known_word_tags;
     double unknown_word_precision = (double) nof_unknown_word_correct_tags / nof_unknown_word_tags;
     std::cout << std::endl << "total tags: " << nof_known_word_tags + nof_unknown_word_tags << std::endl;
@@ -263,12 +259,51 @@ void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
 //
 // 解析済みファイルからwordとtagを抽出するスクリプト
 //
-void getWordAndTagByTxt(std::string& line, std::string* word, std::string* tag)
+void getWordAndTagByTxt(const std::string& line, std::string* word, std::string* tag)
 {
     size_t first_delim_pos = line.find(TXT_DELIMITER);
     size_t second_delim_pos = line.find(TXT_DELIMITER, first_delim_pos + 1);
     int tag_len = second_delim_pos - first_delim_pos - 1;
     *word = line.substr(0, line.find(SENTENCE_DELIMITER));
     *tag = line.substr(first_delim_pos + 1, tag_len);
+
+}
+
+//
+// 学習時における、単語とそれに対するタグとその数をumapに保存。また、単語におけるタグの総数も保存しておく。
+// @param obs_likeli_file: observation likelihoodを計算済みのファイル名
+// @param word2tags_map: {word: {tag: count, tag2: count2,..., "total": total_count}, word2:...}
+// という形式のumap
+//
+void getWord2TagsMap(const std::string& obs_likeli_file,
+                     std::unordered_map<std::string, std::unordered_map<std::string, int>>* word2tags_map)
+{
+    std::string line;
+    std::ifstream likeli_input(obs_likeli_file);
+    while (std::getline(likeli_input, line))
+    {
+        // カウント・タグ・単語を取得
+        size_t first_delim_pos = line.find(SENTENCE_DELIMITER);
+        size_t second_delim_pos = line.find(SENTENCE_DELIMITER, first_delim_pos + 1);
+        int tag_len = second_delim_pos - first_delim_pos - 1;
+        int count = std::stoi(line.substr(0, first_delim_pos));
+        std::string tag = line.substr(first_delim_pos + 1, tag_len);
+        std::string word = line.substr(second_delim_pos + 1);
+
+        // カウントのpairを作成
+        std::pair<std::string, int> tag_count_pair(tag, count);
+
+        auto iter = word2tags_map->find(word);
+        if (iter != word2tags_map->end())
+        {
+            iter->second["total"] += count;
+            iter->second.insert(tag_count_pair);
+        }
+        else
+        {
+            std::unordered_map<std::string, int> tag_count_umap = {tag_count_pair, {"total", count}};
+            word2tags_map->emplace(word, tag_count_umap);
+        }
+    }
 
 }
