@@ -86,6 +86,14 @@ total tags: 47377, correct tags: 40724
 precision: 0.859573
 ```
 
+### Forwardアルゴリズムに関わるファイル
+* forward.cpp: forwardアルゴリズムを実行するスクリプト。各行に各文の尤度を出力する。仮定や引数などはviterbiと同じ。
+```
+$ cat test.txt | ./forward n_tag_trans_count.txt n-1_tag_trans_count.txt obs_likli.txt | head -3
+5.701039134822774e-84
+1.6877287082313187e-48
+1.020969742467284e-91
+```
 
 ## 解析済みファイル(train.txt, test.txt)の形式
 ```
