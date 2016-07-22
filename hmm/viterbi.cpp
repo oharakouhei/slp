@@ -52,7 +52,9 @@ void getTag2WordsMap(const std::string& obs_likeli_file,
                      std::unordered_map<std::string, std::unordered_map<std::string, int>>* tag2words_map);
 void outputConfusedMatrix(const std::unordered_set<std::string>& unique_tags,
                           const std::unordered_map<std::string, std::unordered_map<std::string, int>>& confused_matrix);
-
+double calcLogObservationLikelihood(const int& vocab_size,
+                                 const std::unordered_map<std::string, int>& obs_word_count_map,
+                                 const std::string& word);
 
 int main(int argc, char** argv)
 {
@@ -146,19 +148,9 @@ int main(int argc, char** argv)
             // opservation probability
             const std::unordered_map<std::string, int>& obs_word_count_map = tag2words_map[unique_tag];
             auto owcm_iter = obs_word_count_map.find(test_word);
-            int obs_word_count = 0;
-            int obs_tag_total_count = 0;
             if (owcm_iter != obs_word_count_map.end())
-                obs_word_count = owcm_iter->second;
-            owcm_iter = obs_word_count_map.find("total_count");
-            if (owcm_iter != obs_word_count_map.end())
-                obs_tag_total_count = owcm_iter->second;
-            if (obs_word_count != 0)
                 isKnownWord = TRUE;
-            // 分子分母
-            int numer = obs_word_count + 1;
-            int denom = obs_tag_total_count + vocab_size + 1;
-            double obs_logp = log((double) numer / denom);
+            double obs_logp = calcLogObservationLikelihood(vocab_size, obs_word_count_map, test_word);
             double viterbi_candidate_logp = viterbi_logp + transition_logp + obs_logp;
             if (vmax <= viterbi_candidate_logp) {
                 tag_selected = unique_tag;
@@ -372,4 +364,30 @@ void outputConfusedMatrix(const std::unordered_set<std::string>& unique_tags,
         }
         std::cout << std::endl;
     }
+}
+
+
+//
+// 尤度をlogで取った値を返す関数
+// @param vocab_size: 学習時の総単語数
+// @param obs_word_count_map: タグから単語へのmap
+// @param word: 今回尤度を計算する単語
+//
+double calcLogObservationLikelihood(const int& vocab_size,
+                                 const std::unordered_map<std::string, int>& obs_word_count_map,
+                                 const std::string& word)
+{
+    auto owcm_iter = obs_word_count_map.find(word);
+    int obs_word_count = 0;
+    int obs_tag_total_count = 0;
+    if (owcm_iter != obs_word_count_map.end())
+        obs_word_count = owcm_iter->second;
+    owcm_iter = obs_word_count_map.find("total_count");
+    if (owcm_iter != obs_word_count_map.end())
+        obs_tag_total_count = owcm_iter->second;
+    // 分子分母
+    int numer = obs_word_count + 1;
+    int denom = obs_tag_total_count + vocab_size + 1;
+    double obs_logp = log((double) numer / denom);
+    return obs_logp;
 }
