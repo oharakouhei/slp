@@ -219,7 +219,8 @@ void getUniqueTags(const std::string& n_1tag_trans_count_file, std::unordered_se
         size_t second_delim_pos = n_1tag_line.find(SENTENCE_DELIMITER, first_delim_pos + 1);
         int tag_len = second_delim_pos - first_delim_pos - 1;
         std::string tag = n_1tag_line.substr(first_delim_pos + 1, tag_len);
-        unique_tags->insert(tag);
+        if (tag != TAG_START_SYMBOL && tag != TAG_END_SYMBOL)
+            unique_tags->insert(tag);
     }
 }
 
