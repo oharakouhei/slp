@@ -49,6 +49,9 @@ void getWordAndTagByTxt(const std::string& test_line,
                         std::string* test_tag);
 void getTag2WordsMap(const std::string& obs_likeli_file,
                      std::unordered_map<std::string, std::unordered_map<std::string, int>>* tag2words_map);
+void outputConfusedMatrix(const std::unordered_set<std::string>& unique_tags,
+                          const std::unordered_map<std::string, std::unordered_map<std::string, int>>& confused_matrix);
+
 
 int main(int argc, char** argv)
 {
@@ -98,7 +101,8 @@ int main(int argc, char** argv)
     int nof_known_word_correct_tags = 0; // known wordのtagの総正解数
     int nof_unknown_word_tags = 0; // testで出てきたunknown wordの総tag数
     int nof_unknown_word_correct_tags = 0; // unknown wordのtagの総正解数
-
+    // confused matrix
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> confused_matrix;
 
     ////////////////////// test.txtでループここから ///////////////////////////
     // これらの変数は一文の最初で初期化
@@ -107,11 +111,9 @@ int main(int argc, char** argv)
     double viterbi_logp = 0.0;
     // ループ
     char char_test_line[1 << 21];
-    while (fgets(char_test_line, 1 << 21, stdin))
-    {
+    while (fgets(char_test_line, 1 << 21, stdin)) {
         // 改行時処理
-        if (char_test_line[0] == '\n')
-        {
+        if (char_test_line[0] == '\n') {
             // 一文の最初で初期化
             std::cout << std::endl;
             found_pos = 0;
@@ -135,16 +137,14 @@ int main(int argc, char** argv)
         // 各タグに対してviterbiの確率を計算し，最大の要素を選択する
         double vmax = -99999;
         std::string tag_selected;
-        for (auto unique_tag : unique_tags)
-        {
+        for (auto unique_tag : unique_tags) {
             // transition probability
             std::string tagseq = prev_tag + SENTENCE_DELIMITER + unique_tag;
             // prev_tagとtagを与え、transition_pを計算結果を返す
             double transition_logp = transition_logp_map[tagseq];
             // opservation probability
             std::unordered_map<std::string, int> obs_word_count_map = tag2words_map[unique_tag];
-            if (obs_word_count_map[test_word] != 0)
-            {
+            if (obs_word_count_map[test_word] != 0) {
                 isKnownWord = TRUE;
             }
             // 分子分母
@@ -152,8 +152,7 @@ int main(int argc, char** argv)
             int denom = obs_word_count_map["total_count"] + nof_tags;
             double obs_logp = log((double) numer / denom);
             double viterbi_candidate_logp = viterbi_logp + transition_logp + obs_logp;
-            if (vmax <= viterbi_candidate_logp)
-            {
+            if (vmax <= viterbi_candidate_logp) {
                 tag_selected = unique_tag;
                 vmax = viterbi_candidate_logp;
             }
@@ -168,12 +167,24 @@ int main(int argc, char** argv)
             nof_known_word_tags += 1;
         else
             nof_unknown_word_tags += 1;
-        if (test_tag == tag_selected)
-        {
+        if (test_tag == tag_selected) {
             if (isKnownWord)
                 nof_known_word_correct_tags += 1;
             else
                 nof_unknown_word_correct_tags += 1;
+        }
+        else {
+            // カウントのpairを作成
+            std::pair<std::string, int> tmp_pair(tag_selected, 1);
+            auto iter = confused_matrix.find(test_tag);
+            if (iter != confused_matrix.end()) {
+                iter->second["total_count"] += 1;
+                iter->second.insert(tmp_pair);
+            }
+            else {
+                std::unordered_map<std::string, int> tmp_umap = {tmp_pair, {"total_count", 1}};
+                confused_matrix.emplace(test_tag, tmp_umap);
+            }
         }
     }
     ////////////////////// test.txtでループここまで ///////////////////////////
@@ -188,6 +199,9 @@ int main(int argc, char** argv)
     std::cout << "unknown word tags: " << nof_unknown_word_tags;
     std::cout << ", correct unknown word tags: " << nof_unknown_word_correct_tags << std::endl;
     std::cout << "unknown_word_precision: " << unknown_word_precision << std::endl;
+
+    ////////////////////// confused matrixのアウトプット /////////////////////
+//    outputConfusedMatrix(unique_tags, confused_matrix);
 }
 
 
@@ -200,8 +214,7 @@ void getUniqueTags(const std::string& n_1tag_trans_count_file, std::unordered_se
 {
     std::ifstream n_1tag_trans_count_input(n_1tag_trans_count_file);
     std::string n_1tag_line;
-    while (std::getline(n_1tag_trans_count_input, n_1tag_line))
-    {
+    while (std::getline(n_1tag_trans_count_input, n_1tag_line)) {
         size_t first_delim_pos = n_1tag_line.find(SENTENCE_DELIMITER);
         size_t second_delim_pos = n_1tag_line.find(SENTENCE_DELIMITER, first_delim_pos + 1);
         int tag_len = second_delim_pos - first_delim_pos - 1;
@@ -230,8 +243,7 @@ void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
     // 以下のループ内で何度もループさせると処理が遅そうなので
     std::string n_1tag_line;
     std::unordered_map<std::string, int> n_1tag_count_map;
-    while (std::getline(n_1tag_trans_count_input, n_1tag_line))
-    {
+    while (std::getline(n_1tag_trans_count_input, n_1tag_line)) {
         size_t first_delim_pos = n_1tag_line.find(SENTENCE_DELIMITER);
         std::string n_1tagseq = n_1tag_line.substr(first_delim_pos + 1);
         n_1tag_count_map[n_1tagseq] = std::stoi(n_1tag_line.substr(0, first_delim_pos));
@@ -240,8 +252,7 @@ void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
     // nタグのカウントを記述しているファイルで同様にループ
     std::string ntag_line;
     std::unordered_map<std::string, int> ntag_count_map;
-    while (std::getline(ntag_trans_count_input, ntag_line))
-    {
+    while (std::getline(ntag_trans_count_input, ntag_line)) {
         size_t first_delim_pos = ntag_line.find(SENTENCE_DELIMITER);
         std::string ntagseq = ntag_line.substr(first_delim_pos + 1);
         ntag_count_map[ntagseq] = std::stoi(ntag_line.substr(0, first_delim_pos));
@@ -249,10 +260,8 @@ void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
 
     // 遷移確率pのlog
     // n_1tag_count_map、n_1tag_count_mapを利用
-    for (auto first_tag : unique_tags)
-    {
-        for (auto second_tag : unique_tags)
-        {
+    for (auto first_tag : unique_tags) {
+        for (auto second_tag : unique_tags) {
             std::string tagseq = first_tag + SENTENCE_DELIMITER + second_tag;
             // 分子
             int numer = ntag_count_map[tagseq] + 1;
@@ -289,8 +298,7 @@ void getTag2WordsMap(const std::string& obs_likeli_file,
 {
     std::string line;
     std::ifstream likeli_input(obs_likeli_file);
-    while (std::getline(likeli_input, line))
-    {
+    while (std::getline(likeli_input, line)) {
         // カウント・タグ・単語を取得
         size_t first_delim_pos = line.find(SENTENCE_DELIMITER);
         size_t second_delim_pos = line.find(SENTENCE_DELIMITER, first_delim_pos + 1);
@@ -303,16 +311,52 @@ void getTag2WordsMap(const std::string& obs_likeli_file,
         std::pair<std::string, int> word_count_pair(word, count);
 
         auto iter = tag2words_map->find(tag);
-        if (iter != tag2words_map->end())
-        {
+        if (iter != tag2words_map->end()) {
             iter->second["total_count"] += count;
             iter->second.insert(word_count_pair);
         }
-        else
-        {
+        else {
             std::unordered_map<std::string, int> word_count_umap = {word_count_pair, {"total_count", count}};
             tag2words_map->emplace(tag, word_count_umap);
         }
     }
 
+}
+
+//
+// confused matrix出力関数
+//
+void outputConfusedMatrix(const std::unordered_set<std::string>& unique_tags,
+                          const std::unordered_map<std::string, std::unordered_map<std::string, int>>& confused_matrix)
+{
+    std::cout << confused_matrix << std::endl;
+    std::cout << "   ";
+    for (auto unique_tag : unique_tags) {
+        std::cout << unique_tag << " ";
+    }
+    std::cout << std::endl;
+    for (auto row_tag : unique_tags) {
+        auto row_iter = confused_matrix.find(row_tag);
+        std::unordered_map<std::string, int> row_count_map;
+        if (row_iter != confused_matrix.end()) {
+            row_count_map = row_iter->second;
+        }
+
+        std::cout << row_tag << " ";
+        for (auto col_tag : unique_tags) {
+            double p = 0.0;
+            auto total_iter = row_count_map.find("total_count");
+            if (total_iter != row_count_map.end()) {
+                auto col_iter = row_count_map.find(col_tag);
+                if (col_iter != row_count_map.end()) {
+                    p = (double) col_iter->second / total_iter->second;
+                }
+            }
+            if (p == 0.0)
+                std::cout << " " << " ";
+            else
+                std::cout << p << " ";
+        }
+        std::cout << std::endl;
+    }
 }
