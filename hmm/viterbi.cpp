@@ -108,13 +108,13 @@ int main(int argc, char** argv)
     std::unordered_map<std::string, std::unordered_map<std::string, int>> confused_matrix;
 
     ////////////////////// testここから ///////////////////////////
-    std::vector<double> prev_logp_vec(nof_tags);
     std::vector<std::string> test_tags;
     std::vector<std::string> test_words;
     /////////////////// 行でループここから ///////////////////////
     while (getLineWordsAndTags(&test_words, &test_tags)) {
         int line_len = test_words.size();
         // これらの変数は一文の最初で初期化
+        std::vector<double> prev_logp_vec(nof_tags);
         size_t found_pos = 0;
         double viterbi_logp = 0.0;
         bool isFirstWord = TRUE;
@@ -128,8 +128,6 @@ int main(int argc, char** argv)
 
             /// 学習時における単語に対するタグとそのタグの件数の組を冒頭で生成したumapから参照するumap
             std::unordered_map<std::string, int> obs_tag_count_map;
-            // 既知語フラグ
-            bool isKnownWord = FALSE;
 
             ///////////// viterbiの計算 ////////////
             // 初回は1回のループで良い
@@ -178,8 +176,10 @@ int main(int argc, char** argv)
             }
         }
         ///////////////// 単語でループここまで ////////////////////
-        // 各タグに対してviterbiの確率を計算し，最大の要素を選択する
         // 改行時処理
+        // 各タグに対してviterbiの確率を計算し，最大の要素を選択する
+        // 既知語フラグ
+        bool isKnownWord = FALSE;
         std::string current_tag = TAG_END_SYMBOL;
         double max_log_prob = -9999;
         int max_index;
@@ -189,19 +189,22 @@ int main(int argc, char** argv)
             std::string tagseq = prev_tag + SENTENCE_DELIMITER + current_tag;
             double transition_logp = transition_logp_map.at(tagseq);
             double logp = prev_logp_vec.at(j) + transition_logp + 0.0;
-            if (max_log_prob <= logp)
+            if (max_log_prob <= logp) {
                 max_log_prob = logp, max_index = j;
+            }
         }
         // max_indexからbpを遡る
         int prev_id = -1;
-        std::vector<int> outputs;
+        std::vector<int> outputs = { max_index };
         for (int k = bp.size() - 1; k >= 0; k--) {
             if (prev_id == -1) {
                 prev_id = bp.at(k).at(max_index);
-                outputs.push_back(max_index);
+                outputs.push_back(prev_id);
             }
-            outputs.push_back(prev_id);
-            prev_id = bp.at(k).at(prev_id);
+            else {
+                prev_id = bp.at(k).at(prev_id);
+                outputs.push_back(prev_id);
+            }
         }
         int outputs_end = outputs.size() - 1;
         for (int k = outputs_end; k >= 0; k--) {
@@ -246,7 +249,7 @@ int main(int argc, char** argv)
 
     ////////////////////// precisionのアウトプット ///////////////////////////
     std::cout << std::endl << "total tags: " << nof_test_tags << std::endl;
-    std::cout << std::endl << "correct tags: " << nof_correct_tags << std::endl;
+    std::cout << "correct tags: " << nof_correct_tags << std::endl;
     double precision = (double) nof_correct_tags / nof_test_tags;
     std::cout << "precision: " << precision << std::endl;
 //    double known_word_precision = (double) nof_known_word_correct_tags / nof_known_word_tags;
