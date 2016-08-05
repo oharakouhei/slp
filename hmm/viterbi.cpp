@@ -36,6 +36,7 @@
 #include <fstream>
 #include <cmath>
 #include <curses.h>
+#include <iomanip>
 
 void calcTransitionLogProbability(const std::string& ntag_trans_count_file,
                                   const std::string& n_1tag_trans_count_file,
@@ -49,7 +50,7 @@ void getTag2WordsMap(const std::string& obs_likeli_file,
                      int* vocab_size,
                      std::unordered_map<std::string, std::unordered_map<std::string, int>>* tag2words_map);
 void outputConfusedMatrix(const std::vector<std::string>& unique_tags,
-                          const std::unordered_map<std::string, std::unordered_map<std::string, int>>& confused_matrix);
+                          const std::unordered_map<std::string, std::unordered_map<std::string, int>>& confusion_matrix);
 double calcLogObservationLikelihood(const int& vocab_size,
                                  const std::unordered_map<std::string, int>& obs_word_count_map,
                                  const std::string& word);
@@ -103,8 +104,8 @@ int main(int argc, char** argv)
     int nof_known_word_correct_tags = 0; // known wordのtagの総正解数
     int nof_unknown_word_tags = 0; // testで出てきたunknown wordの総tag数
     int nof_unknown_word_correct_tags = 0; // unknown wordのtagの総正解数
-    // confused matrix
-    std::unordered_map<std::string, std::unordered_map<std::string, int>> confused_matrix;
+    // confusion matrix
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> confusion_matrix;
 
     ////////////////////// testここから ///////////////////////////
     std::vector<std::string> test_tags;
@@ -242,14 +243,14 @@ int main(int argc, char** argv)
             else {
                 // カウントのpairを作成
                 std::pair<std::string, int> tmp_pair(ans, 1);
-                auto iter = confused_matrix.find(pred_tag);
-                if (iter != confused_matrix.end()) {
+                auto iter = confusion_matrix.find(pred_tag);
+                if (iter != confusion_matrix.end()) {
                     iter->second["total_count"] += 1;
                     iter->second.insert(tmp_pair);
                 }
                 else {
                     std::unordered_map<std::string, int> tmp_umap = {tmp_pair, {"total_count", 1}};
-                    confused_matrix.emplace(pred_tag, tmp_umap);
+                    confusion_matrix.emplace(pred_tag, tmp_umap);
                 }
             }
         }
@@ -269,8 +270,8 @@ int main(int argc, char** argv)
     std::cout << ", correct unknown word tags: " << nof_unknown_word_correct_tags << std::endl;
     std::cout << "unknown_word_precision: " << unknown_word_precision << std::endl;
 
-    ////////////////////// confused matrixのアウトプット /////////////////////
-//    outputConfusedMatrix(unique_tags, confused_matrix);
+    ////////////////////// confusion matrixのアウトプット /////////////////////
+    outputConfusedMatrix(unique_tags, confusion_matrix);
 }
 
 
@@ -421,24 +422,28 @@ void getTag2WordsMap(const std::string& obs_likeli_file,
 }
 
 //
-// confused matrix出力関数
+// confusion matrix出力関数
 //
 void outputConfusedMatrix(const std::vector<std::string>& unique_tags,
-                          const std::unordered_map<std::string, std::unordered_map<std::string, int>>& confused_matrix)
+                          const std::unordered_map<std::string, std::unordered_map<std::string, int>>& confusion_matrix)
 {
-    std::cout << "   ";
-    for (auto unique_tag : unique_tags) {
-        std::cout << unique_tag << " ";
+    std::ofstream ofs("confusion_matrix.csv");
+
+    const char separator = ',';
+
+    ofs << " " << separator;
+    for (auto col_tag : unique_tags) {
+        ofs << col_tag << separator;
     }
-    std::cout << std::endl;
+    ofs << std::endl;
     for (auto row_tag : unique_tags) {
-        auto row_iter = confused_matrix.find(row_tag);
+        auto row_iter = confusion_matrix.find(row_tag);
         std::unordered_map<std::string, int> row_count_map;
-        if (row_iter != confused_matrix.end()) {
+        if (row_iter != confusion_matrix.end()) {
             row_count_map = row_iter->second;
         }
 
-        std::cout << row_tag << " ";
+        ofs << row_tag << separator;
         for (auto col_tag : unique_tags) {
             double p = 0.0;
             auto total_iter = row_count_map.find("total_count");
@@ -449,11 +454,11 @@ void outputConfusedMatrix(const std::vector<std::string>& unique_tags,
                 }
             }
             if (p == 0.0)
-                std::cout << " " << " ";
+                ofs << separator;
             else
-                std::cout << p << " ";
+                ofs << std::fixed << std::setprecision(2) << p << separator;
         }
-        std::cout << std::endl;
+        ofs << std::endl;
     }
 }
 
