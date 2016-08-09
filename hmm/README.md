@@ -15,7 +15,7 @@ $ cat train.txt | ./txt2tagseq | ./tagseq2tagseq_count 2 > 2tagseq_count.txt
 尤度のファイルも必要なので、
 
 ```
-$ cat train.txt | ./txt2tagword_count > obs_likeli.txt
+$ cat train.txt | ./txt2tagword_count > emission.txt
 ```
 
 いよいよviterbiを実行。上記で出力した3ファイルを使用して、
