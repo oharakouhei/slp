@@ -2,10 +2,13 @@ data/*
 .idea/*
 CMakeFiles/*
 CmakeCache.txt
+confusion_matrix.csv
 
-# executable file
+# executable files
 txt2tagseq
 tagseq2tagseq_count
 txt2tagword_count
 viterbi
 forward
+train
+tagger
