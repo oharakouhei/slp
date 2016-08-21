@@ -29,23 +29,23 @@
 class Tagger {
 public:
     std::vector<std::string> id2tag, id2word;
-    std::vector<std::vector<int>> transition; // tag (pre) -> tag
-    std::vector<int> start_transition;
-    std::vector<int> end_transition;
-    std::vector<std::vector<int>> emission; // tag -> word
+    std::vector<std::vector<double>> transition_prob; // tag (pre) -> tag
+    std::vector<double> start_transition_prob;
+    std::vector<double> end_transition_prob;
+    std::vector<std::vector<double>> emission_prob; // tag -> word
     Tagger() {
-        transition = {}, start_transition = {},
-        end_transition = {}, emission = {};
+        transition_prob = {}, start_transition_prob = {},
+        end_transition_prob = {}, emission_prob = {};
     }
     // debug
     void show_all () {
         std::cout << "{" << std::endl
         << "  id2tag: " << id2tag << std::endl
         << "  id2word: " << id2word << std::endl
-        << "  transition: " << transition << std::endl
-        << "  start_transition: " << start_transition << std::endl
-        << "  end_transition: " << end_transition << std::endl
-        << "  emission: " << emission << std::endl
+        << "  transition: " << transition_prob << std::endl
+        << "  start_transition: " << start_transition_prob << std::endl
+        << "  end_transition: " << end_transition_prob << std::endl
+        << "  emission: " << emission_prob << std::endl
         << "}" << std::endl;
     }
 };
@@ -62,7 +62,7 @@ void read_model(char* model_file, Tagger* tagger) {
             ++model_flg;
             continue;
         }
-        char* mv = std::strtok(line, "\n");
+        char* mv = line;
         char* stay = mv;
         size_t len = strlen(mv);
         switch (model_flg) {
@@ -80,24 +80,36 @@ void read_model(char* model_file, Tagger* tagger) {
             }
             case 2:
                 // start_transition prob
-//                char* stay = mv; while (*mv != ' ') ++mv;
-
+                for (; *mv != '\n'; ++mv)
+                    tagger->start_transition_prob.push_back(log(std::strtod(mv, &mv)));
                 break;
             case 3:
                 // end_transition prob
+                for (; *mv != '\n'; ++mv)
+                    tagger->end_transition_prob.push_back(log(std::strtod(mv, &mv)));
                 break;
-            case 4:
+            case 4: {
                 // transition prob
+                std::vector<double> pretag2tag_prob;
+                for (; *mv != '\n'; ++mv)
+                    pretag2tag_prob.push_back(log(std::strtod(mv, &mv)));
+                tagger->transition_prob.push_back(pretag2tag_prob);
                 break;
-            case 5:
+            }
+            case 5: {
                 // emission prob
+                std::vector<double> tag2word_prob;
+                for (; *mv != '\n'; ++mv)
+                    tag2word_prob.push_back(log(std::strtod(mv, &mv)));
+                tagger->emission_prob.push_back(tag2word_prob);
                 break;
+            }
             default:
                 // if there is something left
                 std::cerr << mv << std::endl;
         }
     }
-    tagger->show_all();
+    // tagger->show_all();
 }
 
 int main(int argc, char** argv) {
