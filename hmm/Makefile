@@ -32,27 +32,27 @@ txt2tagseq : $(txt2tagseq_cpp_files) $(txt2tagseq_h_files)
 
 .PHONY: tagseq2tagseq_count
 tagseq2tagseq_count : $(tagseq2tagseq_count_cpp_files) $(tagseq2tagseq_count_h_files)
-	g++ -o $@ $(CXXFLAGS) $(txt2tagseq_cpp_files)
+	g++ -o $@ $(CXXFLAGS) $(tagseq2tagseq_count_cpp_files)
 
 .PHONY: txt2tagword_count
 txt2tagword_count : $(txt2tagword_count_cpp_files) $(txt2tagword_count_h_files)
-	g++ -o $@ $(CXXFLAGS) $(txt2tagseq_cpp_files)
+	g++ -o $@ $(CXXFLAGS) $(txt2tagword_count_cpp_files)
 
 .PHONY: viterbi
 viterbi : $(viterbi_cpp_files) $(viterbi_h_files)
-	g++ -o $@ $(CXXFLAGS) $(txt2tagseq_cpp_files)
+	g++ -o $@ $(CXXFLAGS) $(viterbi_cpp_files)
 
 .PHONY: forward
 forward : $(forward_cpp_files) $(forward_h_files)
-	g++ -o $@ $(CXXFLAGS) $(txt2tagseq_cpp_files)
+	g++ -o $@ $(CXXFLAGS) $(forward_cpp_files)
 
 .PHONY: train
 train : $(train_cpp_files) $(train_h_files)
-	g++ -o $@ $(CXXFLAGS) $(txt2tagseq_cpp_files)
+	g++ -o $@ $(CXXFLAGS) $(train_cpp_files)
 
 .PHONY: tagger
 tagger : $(tagger_cpp_files) $(tagger_h_files)
-	g++ -o $@ $(CXXFLAGS) $(txt2tagseq_cpp_files)
+	g++ -o $@ $(CXXFLAGS) $(tagger_cpp_files)
 
 .PHONY: clean
 clean :
