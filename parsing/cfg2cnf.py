@@ -20,7 +20,6 @@ def solve(file):
             # lhs: left hand side, rhs: right hand side
             lhs, rhs, prob = rule[0], rule[1:-1], rule[-1]
             input_grammar.append([lhs, rhs, prob])
-            # convert_to_cnf(symbols)
             line = f.readline()
 
     # convert terminal to non_terminal
